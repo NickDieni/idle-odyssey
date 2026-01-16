@@ -4,10 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/game/store';
 
 export default function GamePage() {
-  const tick = useGameStore((s) => s.tick);
-  const gold = useGameStore((s) => s.resources.gold);
-  const goldPerSec = useGameStore((s) => s.getStat('prod.gold'));
-
+  const tick = useGameStore(s => s.tick);
   const last = useRef<number | null>(null);
 
   useEffect(() => {
@@ -28,9 +25,8 @@ export default function GamePage() {
 
   return (
     <div>
-      <div className="text-xl font-semibold">Idle Odyssey</div>
-      <div className="mt-2 text-gray-300">Gold: {Math.floor(gold)}</div>
-      <div className="text-gray-400">Gold/sec: {goldPerSec.toFixed(2)}</div>
+      {/* Main game UI goes here later */}
+      <h1 className="text-xl font-semibold">Idle Odyssey</h1>
     </div>
   );
 }

@@ -1,7 +1,14 @@
 export type StatKey =
   | 'prod.gold'      // gold per second
-  | 'prod.gems'
-  | 'cap.energy';    // example: max energy
+  | 'prod.wood'      // wood per second
+  | 'prod.stone'     // stone per second
+  | 'prod.iron'      // iron per second
+  | 'prod.copper'    // copper per second
+  | 'cap.gold'       // example: max gold
+  | 'cap.wood'       // example: max wood
+  | 'cap.stone'      // example: max stone
+  | 'cap.iron'       // example: max iron
+  | 'cap.copper';    // example: max copper
 
 export type ModifierType = 'add' | 'mul'; 
 // add: +X to the stat
