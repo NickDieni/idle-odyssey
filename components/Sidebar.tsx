@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { ResourcePanel } from "./ResourcePanel";
+import LevelBar from "./LevelBar";
 
 export default function Sidebar() {
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
+    { name: "Wood Cutting", href: "/woodcutting" },
     // Add as many as you want – sidebar will scroll
   ];
 
@@ -18,6 +20,7 @@ export default function Sidebar() {
       >
         Idle Odyssey
       </Link>
+      <LevelBar />
 
       {/* Scrollable nav */}
       <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">

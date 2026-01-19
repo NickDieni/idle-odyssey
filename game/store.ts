@@ -2,10 +2,14 @@ import { create } from "zustand";
 import type { Effect, StatKey } from "./effects";
 import { pruneExpiredEffects, resolveStat } from "./resolve";
 import { RESOURCES, type ResourceId } from "./resources";
+import { UPGRADES } from "@/game/upgrades";
+import type { Cost } from "@/game/upgrades";
 
 type ResourceAmounts = Record<ResourceId, number>;
 type BaseStats = Partial<Record<StatKey, number>>;
 type DiscoveredMap = Record<ResourceId, boolean>;
+type OwnedUpgrades = Record<string, boolean>;
+type AutoEnabled = Record<string, boolean>;
 
 function buildInitialDiscovered(): DiscoveredMap {
   const initial = {} as DiscoveredMap;
@@ -15,12 +19,29 @@ function buildInitialDiscovered(): DiscoveredMap {
   return initial;
 }
 
+function canAfford(resources: Record<string, number>, cost: Cost): boolean {
+  return Object.entries(cost).every(
+    ([rid, amount]) => (resources[rid] ?? 0) >= amount
+  );
+}
+
+function payCost(resources: ResourceAmounts, cost: Cost): ResourceAmounts {
+  const next = { ...resources };
+  for (const [rid, amount] of Object.entries(cost)) {
+    next[rid as ResourceId] = (next[rid as ResourceId] ?? 0) - (amount ?? 0);
+  }
+  return next;
+}
 type GameState = {
   resources: ResourceAmounts;
   discovered: DiscoveredMap;
 
   baseStats: BaseStats;
   effects: Effect[];
+
+  ownedUpgrades: OwnedUpgrades;
+  autoUnlocked: AutoEnabled;
+  autoEnabled: AutoEnabled;
 
   // queries
   getStat: (stat: StatKey) => number;
@@ -38,13 +59,23 @@ type GameState = {
   addEffect: (effect: Effect) => void;
   removeEffect: (effectId: string) => void;
 
+  buyUpgrade: (upgradeId: string) => boolean;
+  toggleAuto: (nodeId: string) => void;
+  isAutoAvailable: (nodeId: string) => boolean;
+
   tick: (dtSeconds: number) => void;
 };
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>((set, get) =>   ({
   resources: {
+    xp: 0,
+
     gold: 0,
-    wood: 0,
+
+    oak: 0,
+    birch: 0,
+    spruce: 0,
+
     stone: 0,
     iron: 0,
     copper: 0,
@@ -54,11 +85,57 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Base “engine stats” (production per second, caps, etc.)
   baseStats: {
     "prod.gold": 1,
-    "prod.wood": 1,
+    "prod.oak": 1,
     "prod.stone": 1,
   } as BaseStats,
 
   effects: [],
+
+  ownedUpgrades: {},
+  autoUnlocked: {},
+  autoEnabled: {},
+
+  isAutoAvailable: (nodeId) => !!get().autoUnlocked[nodeId],
+
+toggleAuto: (nodeId) =>
+  set((s) => {
+    if (!s.autoUnlocked[nodeId]) return s; // not unlocked yet
+    return {
+      autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
+    };
+  }),
+
+buyUpgrade: (upgradeId) => {
+  const def = UPGRADES.find((u) => u.id === upgradeId);
+  if (!def) return false;
+
+  const state = get();
+  if (state.ownedUpgrades[upgradeId]) return false;
+  if (!canAfford(state.resources, def.cost)) return false;
+
+  // Deduct cost and apply effects/unlocks
+  set((s) => {
+    const nextResources = payCost(s.resources, def.cost);
+
+    // apply effects to effect list (permanent upgrades)
+    const nextEffects = def.effects ? [...s.effects, ...def.effects] : s.effects;
+
+    // unlock auto toggle for node
+    const nextAutoUnlocked =
+      def.unlocks?.autoNodeId
+        ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
+        : s.autoUnlocked;
+
+    return {
+      resources: nextResources,
+      effects: nextEffects,
+      ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
+      autoUnlocked: nextAutoUnlocked,
+    };
+  });
+
+  return true;
+},
 
   getStat: (stat) => {
     const base = get().baseStats[stat] ?? 0;
@@ -119,6 +196,28 @@ export const useGameStore = create<GameState>((set, get) => ({
   removeEffect: (effectId) =>
     set((s) => ({ effects: s.effects.filter((e) => e.id !== effectId) })),
 
+  buyUpgrade: (upgradeId) => {
+    const s = get();
+    const upgrade = UPGRADES[upgradeId];
+    if (!upgrade || s.ownedUpgrades[upgradeId]) return false;
+    if (!canAfford(s.resources, upgrade.cost)) return false;
+
+    set({
+      resources: payCost(s.resources, upgrade.cost),
+      ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
+    });
+    return true;
+  },
+
+  toggleAuto: (nodeId) =>
+    set((s) => ({
+      autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
+    })),
+
+  isAutoAvailable: (nodeId) => {
+    return !!get().autoUnlocked[nodeId];
+  },
+
   tick: (dtSeconds) =>
     set((s) => {
       const now = Date.now();
@@ -130,9 +229,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         "prod.gold",
         effects
       );
-      const woodPerSec = resolveStat(
-        s.baseStats["prod.wood"] ?? 0,
-        "prod.wood",
+      const oakPerSec = resolveStat(
+        s.baseStats["prod.oak"] ?? 0,
+        "prod.oak",
         effects
       );
       const stonePerSec = resolveStat(
@@ -153,7 +252,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       // If you want to prevent production before discovery, gate it:
       const goldGain = s.discovered.gold ? goldPerSec * dtSeconds : 0;
-      const woodGain = s.discovered.wood ? woodPerSec * dtSeconds : 0;
+      const oakGain = s.discovered.oak ? oakPerSec * dtSeconds : 0;
       const stoneGain = s.discovered.stone ? stonePerSec * dtSeconds : 0;
       const ironGain = s.discovered.iron ? ironPerSec * dtSeconds : 0;
       const copperGain = s.discovered.copper ? copperPerSec * dtSeconds : 0;
@@ -161,8 +260,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       return {
         effects,
         resources: {
+          ...s.resources,
           gold: s.resources.gold + goldGain,
-          wood: s.resources.wood + woodGain,
+          oak: s.resources.oak + oakGain,
           stone: s.resources.stone + stoneGain,
           iron: s.resources.iron + ironGain,
           copper: s.resources.copper + copperGain,
