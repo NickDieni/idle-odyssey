@@ -22,7 +22,7 @@ const WOODCUTTING_NODES: GatherNode[] = [
     resourceId: "oak",
     iconSrc: "/icons/oak.png", // optional
     xp: 10,
-    durationSeconds: 3,
+    durationSeconds: 1,
     rewardAmount: 1,
     requirement: { type: "none" },
   },
@@ -33,7 +33,7 @@ const WOODCUTTING_NODES: GatherNode[] = [
     resourceId: "birch",
     iconSrc: "/icons/birch.png", // optional
     xp: 25,
-    durationSeconds: 4,
+    durationSeconds: 1,
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "oak", amount: 15 }, // previous resource requirement
   },
@@ -44,7 +44,7 @@ const WOODCUTTING_NODES: GatherNode[] = [
     resourceId: "spruce",
     //iconSrc: "/icons/spruce.png", // optional
     xp: 50,
-    durationSeconds: 5,
+    durationSeconds: 1,
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "birch", amount: 30 }, // previous resource requirement
   },

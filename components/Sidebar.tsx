@@ -7,6 +7,7 @@ import LevelBar from "./LevelBar";
 export default function Sidebar() {
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
+    { name: "Store", href: "/store" },
     { name: "Wood Cutting", href: "/woodcutting" },
     // Add as many as you want – sidebar will scroll
   ];

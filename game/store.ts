@@ -84,9 +84,40 @@ export const useGameStore = create<GameState>((set, get) =>   ({
 
   // Base “engine stats” (production per second, caps, etc.)
   baseStats: {
-    "prod.gold": 1,
-    "prod.oak": 1,
-    "prod.stone": 1,
+    // =========================
+    // XP
+    // =========================
+    'xp.gain.mult': 1,
+
+    // =========================
+    // Tree Cutting
+    // =========================
+    'prod.oak.amount': 1,
+    'prod.oak.mult': 1,
+    'prod.oak.speed': 1,
+
+      'prod.birch.amount': 0,
+    'prod.birch.mult': 1,
+    'prod.birch.speed': 1,
+
+      'prod.spruce.amount': 0,
+    'prod.spruce.mult': 1,
+    'prod.spruce.speed': 1,
+
+    // =========================
+    // Mining
+    // =========================
+    'prod.stone.amount': 0,
+    'prod.stone.mult': 1,
+    'prod.stone.speed': 1,
+
+    'prod.iron.amount': 0,
+    'prod.iron.mult': 1,
+    'prod.iron.speed': 1,
+
+    'prod.copper.amount': 0,
+    'prod.copper.mult': 1,
+    'prod.copper.speed': 1,
   } as BaseStats,
 
   effects: [],
@@ -97,45 +128,45 @@ export const useGameStore = create<GameState>((set, get) =>   ({
 
   isAutoAvailable: (nodeId) => !!get().autoUnlocked[nodeId],
 
-toggleAuto: (nodeId) =>
-  set((s) => {
-    if (!s.autoUnlocked[nodeId]) return s; // not unlocked yet
-    return {
-      autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
-    };
-  }),
+  toggleAuto: (nodeId) =>
+    set((s) => {
+      if (!s.autoUnlocked[nodeId]) return s; // not unlocked yet
+      return {
+        autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
+      };
+    }),
 
-buyUpgrade: (upgradeId) => {
-  const def = UPGRADES.find((u) => u.id === upgradeId);
-  if (!def) return false;
+  buyUpgrade: (upgradeId) => {
+    const def = UPGRADES.find((u) => u.id === upgradeId);
+    if (!def) return false;
 
-  const state = get();
-  if (state.ownedUpgrades[upgradeId]) return false;
-  if (!canAfford(state.resources, def.cost)) return false;
+    const state = get();
+    if (state.ownedUpgrades[upgradeId]) return false;
+    if (!canAfford(state.resources, def.cost)) return false;
 
-  // Deduct cost and apply effects/unlocks
-  set((s) => {
-    const nextResources = payCost(s.resources, def.cost);
+    // Deduct cost and apply effects/unlocks
+    set((s) => {
+      const nextResources = payCost(s.resources, def.cost);
 
-    // apply effects to effect list (permanent upgrades)
-    const nextEffects = def.effects ? [...s.effects, ...def.effects] : s.effects;
+      // apply effects to effect list (permanent upgrades)
+      const nextEffects = def.effects ? [...s.effects, ...def.effects] : s.effects;
 
-    // unlock auto toggle for node
-    const nextAutoUnlocked =
-      def.unlocks?.autoNodeId
-        ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
-        : s.autoUnlocked;
+      // unlock auto toggle for node
+      const nextAutoUnlocked =
+        def.unlocks?.autoNodeId
+          ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
+          : s.autoUnlocked;
 
-    return {
-      resources: nextResources,
-      effects: nextEffects,
-      ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
-      autoUnlocked: nextAutoUnlocked,
-    };
-  });
+      return {
+        resources: nextResources,
+        effects: nextEffects,
+        ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
+        autoUnlocked: nextAutoUnlocked,
+      };
+    });
 
-  return true;
-},
+    return true;
+  },
 
   getStat: (stat) => {
     const base = get().baseStats[stat] ?? 0;
@@ -195,28 +226,6 @@ buyUpgrade: (upgradeId) => {
 
   removeEffect: (effectId) =>
     set((s) => ({ effects: s.effects.filter((e) => e.id !== effectId) })),
-
-  buyUpgrade: (upgradeId) => {
-    const s = get();
-    const upgrade = UPGRADES[upgradeId];
-    if (!upgrade || s.ownedUpgrades[upgradeId]) return false;
-    if (!canAfford(s.resources, upgrade.cost)) return false;
-
-    set({
-      resources: payCost(s.resources, upgrade.cost),
-      ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
-    });
-    return true;
-  },
-
-  toggleAuto: (nodeId) =>
-    set((s) => ({
-      autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
-    })),
-
-  isAutoAvailable: (nodeId) => {
-    return !!get().autoUnlocked[nodeId];
-  },
 
   tick: (dtSeconds) =>
     set((s) => {
