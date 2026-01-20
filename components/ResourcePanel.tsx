@@ -11,6 +11,7 @@ export function ResourcePanel() {
     <div className="space-y-1">
       {(Object.keys(RESOURCES) as ResourceId[])
         .filter((id) => discovered[id]) // <-- This hides undiscovered resources, using the bool for each
+        .filter((id) => id !== "xp") // hide XP on dashboard
         .map((id) => (
           <div key={id}>
             {RESOURCES[id].name}: {Math.floor(resources[id] ?? 0)}

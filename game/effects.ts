@@ -1,11 +1,20 @@
 export type StatKey =
-  | 'prod.gold'      // gold per second
-  | 'prod.oak'      // wood per second
-  | 'prod.stone'     // stone per second
-  | 'prod.iron'      // iron per second
-  | 'prod.copper'    // copper per second
+  // XP
+  | "xp.gain.mult"
 
-export type ModifierType = 'add' | 'mul'; 
+  // Production: amount/mult/speed for gather nodes
+  | "prod.oak.amount" | "prod.oak.mult" | "prod.oak.speed"
+  | "prod.birch.amount" | "prod.birch.mult" | "prod.birch.speed"
+  | "prod.spruce.amount" | "prod.spruce.mult" | "prod.spruce.speed"
+  | "prod.stone.amount" | "prod.stone.mult" | "prod.stone.speed"
+  | "prod.iron.amount" | "prod.iron.mult" | "prod.iron.speed"
+  | "prod.copper.amount" | "prod.copper.mult" | "prod.copper.speed"
+
+  // If you still use passive income tick stats, add them too:
+  | "prod.gold";
+
+
+export type ModifierType = 'add' | 'mul' | 'speed'; 
 // add: +X to the stat
 // mul: *X to the stat (use 2 for “2x”, 0.5 for “half”, etc.)
 

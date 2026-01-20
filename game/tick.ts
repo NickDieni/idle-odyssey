@@ -27,12 +27,4 @@ export default function GamePage() {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [tick]);
-
-  return (
-    <div>
-      <div className="text-xl font-semibold">Idle Odyssey</div>
-      <div className="mt-2 text-gray-300">Gold: {Math.floor(gold)}</div>
-      <div className="text-gray-400">Gold/sec: {goldPerSec.toFixed(2)}</div>
-    </div>
-  );
 }

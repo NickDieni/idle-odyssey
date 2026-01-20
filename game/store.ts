@@ -4,12 +4,68 @@ import { pruneExpiredEffects, resolveStat } from "./resolve";
 import { RESOURCES, type ResourceId } from "./resources";
 import { UPGRADES } from "@/game/upgrades";
 import type { Cost } from "@/game/upgrades";
+import { SELL_PRICES } from "@/game/selling";
+
+/* =======================
+   Types
+======================= */
 
 type ResourceAmounts = Record<ResourceId, number>;
 type BaseStats = Partial<Record<StatKey, number>>;
 type DiscoveredMap = Record<ResourceId, boolean>;
 type OwnedUpgrades = Record<string, boolean>;
 type AutoEnabled = Record<string, boolean>;
+
+type GameState = {
+  // Core state
+  resources: ResourceAmounts;
+  discovered: DiscoveredMap;
+
+  // Progression
+  baseStats: BaseStats;
+  effects: Effect[];
+
+  // Upgrades / automation
+  ownedUpgrades: OwnedUpgrades;
+  autoUnlocked: AutoEnabled;
+  autoEnabled: AutoEnabled;
+
+  // Global gather selection
+  activeNodeId: string | null;
+  setActiveNodeId: (id: string | null) => void;
+
+  // Queries
+  getStat: (stat: StatKey) => number;
+  isDiscovered: (id: ResourceId) => boolean;
+  isAutoAvailable: (nodeId: string) => boolean;
+
+  // Resource actions
+  addResource: (id: ResourceId, amount: number) => void;
+  setResource: (id: ResourceId, amount: number) => void;
+
+  // Selling
+  getSellValue: (id: ResourceId, amount?: number) => number;
+  sellResource: (id: ResourceId, amount?: number) => number;
+
+  // Discovery
+  discoverResource: (id: ResourceId) => void;
+
+  // Effects / stats
+  setBaseStat: (stat: StatKey, value: number) => void;
+  addEffect: (effect: Effect) => void;
+  removeEffect: (effectId: string) => void;
+
+  // Upgrades / automation
+  buyUpgrade: (upgradeId: string) => boolean;
+  toggleAuto: (nodeId: string) => void;
+
+  // Tick
+  tick: (dtSeconds: number) => void;
+};
+
+/* =======================
+   Helpers
+======================= */
 
 function buildInitialDiscovered(): DiscoveredMap {
   const initial = {} as DiscoveredMap;
@@ -21,103 +77,64 @@ function buildInitialDiscovered(): DiscoveredMap {
 
 function canAfford(resources: Record<string, number>, cost: Cost): boolean {
   return Object.entries(cost).every(
-    ([rid, amount]) => (resources[rid] ?? 0) >= amount
+    ([rid, amt]) => (resources[rid] ?? 0) >= (amt ?? 0)
   );
 }
 
 function payCost(resources: ResourceAmounts, cost: Cost): ResourceAmounts {
   const next = { ...resources };
-  for (const [rid, amount] of Object.entries(cost)) {
-    next[rid as ResourceId] = (next[rid as ResourceId] ?? 0) - (amount ?? 0);
+  for (const [rid, amt] of Object.entries(cost)) {
+    next[rid as ResourceId] = (next[rid as ResourceId] ?? 0) - (amt ?? 0);
   }
   return next;
 }
-type GameState = {
-  resources: ResourceAmounts;
-  discovered: DiscoveredMap;
 
-  baseStats: BaseStats;
-  effects: Effect[];
+/* =======================
+   Store
+======================= */
 
-  ownedUpgrades: OwnedUpgrades;
-  autoUnlocked: AutoEnabled;
-  autoEnabled: AutoEnabled;
+export const useGameStore = create<GameState>((set, get) => ({
+  /* ---------- Core ---------- */
 
-  // queries
-  getStat: (stat: StatKey) => number;
-  isDiscovered: (id: ResourceId) => boolean;
-
-  // resource actions
-  addResource: (id: ResourceId, amount: number) => void;
-  setResource: (id: ResourceId, amount: number) => void;
-
-  // discovery actions
-  discoverResource: (id: ResourceId) => void;
-
-  // stat/effect actions
-  setBaseStat: (stat: StatKey, value: number) => void;
-  addEffect: (effect: Effect) => void;
-  removeEffect: (effectId: string) => void;
-
-  buyUpgrade: (upgradeId: string) => boolean;
-  toggleAuto: (nodeId: string) => void;
-  isAutoAvailable: (nodeId: string) => boolean;
-
-  tick: (dtSeconds: number) => void;
-};
-
-export const useGameStore = create<GameState>((set, get) =>   ({
   resources: {
     xp: 0,
-
     gold: 0,
-
     oak: 0,
     birch: 0,
     spruce: 0,
-
     stone: 0,
     iron: 0,
     copper: 0,
   },
+
   discovered: buildInitialDiscovered(),
 
-  // Base “engine stats” (production per second, caps, etc.)
   baseStats: {
-    // =========================
-    // XP
-    // =========================
-    'xp.gain.mult': 1,
+    "xp.gain.mult": 1,
 
-    // =========================
-    // Tree Cutting
-    // =========================
-    'prod.oak.amount': 1,
-    'prod.oak.mult': 1,
-    'prod.oak.speed': 1,
+    "prod.oak.amount": 0,
+    "prod.oak.mult": 1,
+    "prod.oak.speed": 1,
 
-      'prod.birch.amount': 0,
-    'prod.birch.mult': 1,
-    'prod.birch.speed': 1,
+    "prod.birch.amount": 0,
+    "prod.birch.mult": 1,
+    "prod.birch.speed": 1,
 
-      'prod.spruce.amount': 0,
-    'prod.spruce.mult': 1,
-    'prod.spruce.speed': 1,
+    "prod.spruce.amount": 0,
+    "prod.spruce.mult": 1,
+    "prod.spruce.speed": 1,
 
-    // =========================
-    // Mining
-    // =========================
-    'prod.stone.amount': 0,
-    'prod.stone.mult': 1,
-    'prod.stone.speed': 1,
+    "prod.stone.amount": 0,
+    "prod.stone.mult": 1,
+    "prod.stone.speed": 1,
 
-    'prod.iron.amount': 0,
-    'prod.iron.mult': 1,
-    'prod.iron.speed': 1,
+    "prod.iron.amount": 0,
+    "prod.iron.mult": 1,
+    "prod.iron.speed": 1,
 
-    'prod.copper.amount': 0,
-    'prod.copper.mult': 1,
-    'prod.copper.speed': 1,
+    "prod.copper.amount": 0,
+    "prod.copper.mult": 1,
+    "prod.copper.speed": 1,
   } as BaseStats,
 
   effects: [],
@@ -126,11 +143,103 @@ export const useGameStore = create<GameState>((set, get) =>   ({
   autoUnlocked: {},
   autoEnabled: {},
 
+  /* ---------- Active node ---------- */
+
+  activeNodeId: null,
+  setActiveNodeId: (id) => set({ activeNodeId: id }),
+
+  /* ---------- Queries ---------- */
+
+  getStat: (stat) => {
+    const base = get().baseStats[stat] ?? 0;
+    return resolveStat(base, stat, get().effects);
+  },
+
+  isDiscovered: (id) => !!get().discovered[id],
   isAutoAvailable: (nodeId) => !!get().autoUnlocked[nodeId],
+
+  /* ---------- Resources ---------- */
+
+  addResource: (id, amount) =>
+    set((s) => ({
+      resources: { ...s.resources, [id]: s.resources[id] + amount },
+      discovered:
+        amount > 0 && !s.discovered[id]
+          ? { ...s.discovered, [id]: true }
+          : s.discovered,
+    })),
+
+  setResource: (id, amount) =>
+    set((s) => ({ resources: { ...s.resources, [id]: amount } })),
+
+  /* ---------- Selling ---------- */
+
+  getSellValue: (id, amount) => {
+    const price = SELL_PRICES[id];
+    if (!price) return 0;
+
+    const owned = get().resources[id] ?? 0;
+    const qty = Math.min(owned, amount ?? owned);
+    return Math.floor(qty * price);
+  },
+
+  sellResource: (id, amount) => {
+    const gain = get().getSellValue(id, amount);
+    if (gain <= 0) return 0;
+
+    set((s) => {
+      const owned = s.resources[id] ?? 0;
+      const qty = Math.min(owned, amount ?? owned);
+
+      return {
+        resources: {
+          ...s.resources,
+          [id]: owned - qty,
+          gold: s.resources.gold + gain,
+        },
+      };
+    });
+
+    return gain;
+  },
+
+  /* ---------- Discovery ---------- */
+
+  discoverResource: (id) =>
+    set((s) => ({ discovered: { ...s.discovered, [id]: true } })),
+
+  /* ---------- Effects / stats ---------- */
+
+  setBaseStat: (stat, value) =>
+    set((s) => ({ baseStats: { ...s.baseStats, [stat]: value } })),
+
+  addEffect: (effect) =>
+    set((s) => {
+      const idx = s.effects.findIndex((e) => e.id === effect.id);
+      if (idx === -1) {
+        return { effects: [...s.effects, { ...effect, stacks: effect.stacks ?? 1 }] };
+      }
+
+      const cur = s.effects[idx];
+      const max = cur.maxStacks ?? effect.maxStacks;
+      const stacks = Math.min(
+        (cur.stacks ?? 1) + (effect.stacks ?? 1),
+        max ?? Infinity
+      );
+
+      const copy = s.effects.slice();
+      copy[idx] = { ...cur, ...effect, stacks };
+      return { effects: copy };
+    }),
+
+  removeEffect: (effectId) =>
+    set((s) => ({ effects: s.effects.filter((e) => e.id !== effectId) })),
+
+  /* ---------- Upgrades / automation ---------- */
 
   toggleAuto: (nodeId) =>
     set((s) => {
-      if (!s.autoUnlocked[nodeId]) return s; // not unlocked yet
+      if (!s.autoUnlocked[nodeId]) return s;
       return {
         autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
       };
@@ -144,14 +253,9 @@ export const useGameStore = create<GameState>((set, get) =>   ({
     if (state.ownedUpgrades[upgradeId]) return false;
     if (!canAfford(state.resources, def.cost)) return false;
 
-    // Deduct cost and apply effects/unlocks
     set((s) => {
       const nextResources = payCost(s.resources, def.cost);
-
-      // apply effects to effect list (permanent upgrades)
       const nextEffects = def.effects ? [...s.effects, ...def.effects] : s.effects;
-
-      // unlock auto toggle for node
       const nextAutoUnlocked =
         def.unlocks?.autoNodeId
           ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
@@ -168,113 +272,30 @@ export const useGameStore = create<GameState>((set, get) =>   ({
     return true;
   },
 
-  getStat: (stat) => {
-    const base = get().baseStats[stat] ?? 0;
-    return resolveStat(base, stat, get().effects);
-  },
-
-  isDiscovered: (id) => {
-    return !!get().discovered[id];
-  },
-
-  discoverResource: (id) =>
-    set((s) => ({
-      discovered: { ...s.discovered, [id]: true },
-    })),
-
-  addResource: (id, amount) =>
-    set((s) => {
-      const nextAmount = s.resources[id] + amount;
-      return {
-        resources: { ...s.resources, [id]: nextAmount },
-        discovered:
-          amount > 0 && !s.discovered[id]
-            ? { ...s.discovered, [id]: true }
-            : s.discovered,
-      };
-    }),
-
-  setResource: (id, amount) =>
-    set((s) => ({
-      resources: { ...s.resources, [id]: amount },
-    })),
-
-  setBaseStat: (stat, value) =>
-    set((s) => ({ baseStats: { ...s.baseStats, [stat]: value } })),
-
-  addEffect: (effect) =>
-    set((s) => {
-      const idx = s.effects.findIndex((e) => e.id === effect.id);
-      if (idx === -1) {
-        return {
-          effects: [...s.effects, { ...effect, stacks: effect.stacks ?? 1 }],
-        };
-      }
-
-      const current = s.effects[idx];
-      const maxStacks = current.maxStacks ?? effect.maxStacks;
-      const nextStacks = Math.min(
-        (current.stacks ?? 1) + (effect.stacks ?? 1),
-        maxStacks ?? Infinity
-      );
-
-      const updated = { ...current, ...effect, stacks: nextStacks };
-      const copy = s.effects.slice();
-      copy[idx] = updated;
-      return { effects: copy };
-    }),
-
-  removeEffect: (effectId) =>
-    set((s) => ({ effects: s.effects.filter((e) => e.id !== effectId) })),
+  /* ---------- Tick ---------- */
 
   tick: (dtSeconds) =>
     set((s) => {
-      const now = Date.now();
-      const effects = pruneExpiredEffects(s.effects, now);
+      const effects = pruneExpiredEffects(s.effects, Date.now());
 
-      // Effective production rates
-      const goldPerSec = resolveStat(
-        s.baseStats["prod.gold"] ?? 0,
-        "prod.gold",
-        effects
-      );
-      const oakPerSec = resolveStat(
-        s.baseStats["prod.oak"] ?? 0,
-        "prod.oak",
-        effects
-      );
-      const stonePerSec = resolveStat(
-        s.baseStats["prod.stone"] ?? 0,
-        "prod.stone",
-        effects
-      );
-      const ironPerSec = resolveStat(
-        s.baseStats["prod.iron"] ?? 0,
-        "prod.iron",
-        effects
-      );
-      const copperPerSec = resolveStat(
-        s.baseStats["prod.copper"] ?? 0,
-        "prod.copper",
-        effects
-      );
+      const oak = resolveStat(s.baseStats["prod.oak"] ?? 0, "prod.oak", effects);
+      const birch = resolveStat(s.baseStats["prod.birch"] ?? 0, "prod.birch", effects);
+      const spruce = resolveStat(s.baseStats["prod.spruce"] ?? 0, "prod.spruce", effects);
 
-      // If you want to prevent production before discovery, gate it:
-      const goldGain = s.discovered.gold ? goldPerSec * dtSeconds : 0;
-      const oakGain = s.discovered.oak ? oakPerSec * dtSeconds : 0;
-      const stoneGain = s.discovered.stone ? stonePerSec * dtSeconds : 0;
-      const ironGain = s.discovered.iron ? ironPerSec * dtSeconds : 0;
-      const copperGain = s.discovered.copper ? copperPerSec * dtSeconds : 0;
+      const stone = resolveStat(s.baseStats["prod.stone"] ?? 0, "prod.stone", effects);
+      const iron = resolveStat(s.baseStats["prod.iron"] ?? 0, "prod.iron", effects);
+      const copper = resolveStat(s.baseStats["prod.copper"] ?? 0, "prod.copper", effects);
 
       return {
         effects,
         resources: {
           ...s.resources,
-          gold: s.resources.gold + goldGain,
-          oak: s.resources.oak + oakGain,
-          stone: s.resources.stone + stoneGain,
-          iron: s.resources.iron + ironGain,
-          copper: s.resources.copper + copperGain,
+          oak: s.discovered.oak ? s.resources.oak + oak * dtSeconds : s.resources.oak,
+          birch: s.discovered.birch ? s.resources.birch + birch * dtSeconds : s.resources.birch,
+          spruce: s.discovered.spruce ? s.resources.spruce + spruce * dtSeconds : s.resources.spruce,
+          stone: s.discovered.stone ? s.resources.stone + stone * dtSeconds : s.resources.stone,
+          iron: s.discovered.iron ? s.resources.iron + iron * dtSeconds : s.resources.iron,
+          copper: s.discovered.copper ? s.resources.copper + copper * dtSeconds : s.resources.copper,
         },
       };
     }),
