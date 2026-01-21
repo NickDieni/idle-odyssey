@@ -6,6 +6,11 @@ import { UPGRADES } from "@/game/upgrades";
 import type { Cost } from "@/game/upgrades";
 import { SELL_PRICES } from "@/game/selling";
 
+// IMPORTANT: you need a registry of nodes by id for the store to run gathering.
+// Create this module to export your nodes.
+// Adjust this import path to where you place it:
+import { GATHER_NODES } from "@/game/nodes";
+
 /* =======================
    Types
 ======================= */
@@ -16,50 +21,52 @@ type DiscoveredMap = Record<ResourceId, boolean>;
 type OwnedUpgrades = Record<string, boolean>;
 type AutoEnabled = Record<string, boolean>;
 
+type GatherState = {
+  activeNodeId: string | null;
+  gatherLastTickAt: number | null; // ms timestamp used for offline catch-up
+  gatherProgress01: number; // 0..1 for UI
+};
+
 type GameState = {
-  // Core state
   resources: ResourceAmounts;
   discovered: DiscoveredMap;
 
-  // Progression
   baseStats: BaseStats;
   effects: Effect[];
 
-  // Upgrades / automation
   ownedUpgrades: OwnedUpgrades;
   autoUnlocked: AutoEnabled;
   autoEnabled: AutoEnabled;
 
-  // Global gather selection
-  activeNodeId: string | null;
+  // gather engine
+  gather: GatherState;
   setActiveNodeId: (id: string | null) => void;
 
-  // Queries
+  // queries
   getStat: (stat: StatKey) => number;
   isDiscovered: (id: ResourceId) => boolean;
   isAutoAvailable: (nodeId: string) => boolean;
 
-  // Resource actions
+  // resource actions
   addResource: (id: ResourceId, amount: number) => void;
   setResource: (id: ResourceId, amount: number) => void;
 
-  // Selling
+  // selling
   getSellValue: (id: ResourceId, amount?: number) => number;
   sellResource: (id: ResourceId, amount?: number) => number;
 
-  // Discovery
+  // discovery actions
   discoverResource: (id: ResourceId) => void;
 
-  // Effects / stats
+  // stat/effect actions
   setBaseStat: (stat: StatKey, value: number) => void;
   addEffect: (effect: Effect) => void;
   removeEffect: (effectId: string) => void;
 
-  // Upgrades / automation
   buyUpgrade: (upgradeId: string) => boolean;
   toggleAuto: (nodeId: string) => void;
 
-  // Tick
+  // engine tick
   tick: (dtSeconds: number) => void;
 };
 
@@ -77,7 +84,7 @@ function buildInitialDiscovered(): DiscoveredMap {
 
 function canAfford(resources: Record<string, number>, cost: Cost): boolean {
   return Object.entries(cost).every(
-    ([rid, amt]) => (resources[rid] ?? 0) >= (amt ?? 0)
+    ([rid, amt]) => (resources[rid] ?? 0) >= (amt ?? 0),
   );
 }
 
@@ -89,13 +96,16 @@ function payCost(resources: ResourceAmounts, cost: Cost): ResourceAmounts {
   return next;
 }
 
+function clamp01(n: number) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
 /* =======================
    Store
 ======================= */
 
 export const useGameStore = create<GameState>((set, get) => ({
-  /* ---------- Core ---------- */
-
   resources: {
     xp: 0,
     gold: 0,
@@ -112,6 +122,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   baseStats: {
     "xp.gain.mult": 1,
 
+    // Wood stuff
     "prod.oak.amount": 0,
     "prod.oak.mult": 1,
     "prod.oak.speed": 1,
@@ -123,6 +134,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     "prod.spruce.amount": 0,
     "prod.spruce.mult": 1,
     "prod.spruce.speed": 1,
+
+    // Mine stuff
+    "prod.pebbles.amount": 0,
+    "prod.pebbles.mult": 1,
+    "prod.pebbles.speed": 1,
 
     "prod.stone.amount": 0,
     "prod.stone.mult": 1,
@@ -143,10 +159,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   autoUnlocked: {},
   autoEnabled: {},
 
-  /* ---------- Active node ---------- */
-
-  activeNodeId: null,
-  setActiveNodeId: (id) => set({ activeNodeId: id }),
+  gather: {
+    activeNodeId: null,
+    gatherLastTickAt: null,
+    gatherProgress01: 0,
+  },
 
   /* ---------- Queries ---------- */
 
@@ -157,6 +174,21 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   isDiscovered: (id) => !!get().discovered[id],
   isAutoAvailable: (nodeId) => !!get().autoUnlocked[nodeId],
+
+  /* ---------- Active node (single source of truth) ---------- */
+
+  setActiveNodeId: (id) =>
+    set((s) => {
+      const now = Date.now();
+      return {
+        gather: {
+          activeNodeId: id,
+          // reset timing when switching/selecting/deselecting
+          gatherLastTickAt: id ? now : null,
+          gatherProgress01: 0,
+        },
+      };
+    }),
 
   /* ---------- Resources ---------- */
 
@@ -217,14 +249,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((s) => {
       const idx = s.effects.findIndex((e) => e.id === effect.id);
       if (idx === -1) {
-        return { effects: [...s.effects, { ...effect, stacks: effect.stacks ?? 1 }] };
+        return {
+          effects: [...s.effects, { ...effect, stacks: effect.stacks ?? 1 }],
+        };
       }
 
       const cur = s.effects[idx];
       const max = cur.maxStacks ?? effect.maxStacks;
       const stacks = Math.min(
         (cur.stacks ?? 1) + (effect.stacks ?? 1),
-        max ?? Infinity
+        max ?? Infinity,
       );
 
       const copy = s.effects.slice();
@@ -255,11 +289,13 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set((s) => {
       const nextResources = payCost(s.resources, def.cost);
-      const nextEffects = def.effects ? [...s.effects, ...def.effects] : s.effects;
-      const nextAutoUnlocked =
-        def.unlocks?.autoNodeId
-          ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
-          : s.autoUnlocked;
+      const nextEffects = def.effects
+        ? [...s.effects, ...def.effects]
+        : s.effects;
+
+      const nextAutoUnlocked = def.unlocks?.autoNodeId
+        ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
+        : s.autoUnlocked;
 
       return {
         resources: nextResources,
@@ -272,30 +308,116 @@ export const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
-  /* ---------- Tick ---------- */
+  /* ---------- Tick (includes background/offscreen gathering) ---------- */
 
   tick: (dtSeconds) =>
     set((s) => {
-      const effects = pruneExpiredEffects(s.effects, Date.now());
+      const now = Date.now();
+      const effects = pruneExpiredEffects(s.effects, now);
 
-      const oak = resolveStat(s.baseStats["prod.oak"] ?? 0, "prod.oak", effects);
-      const birch = resolveStat(s.baseStats["prod.birch"] ?? 0, "prod.birch", effects);
-      const spruce = resolveStat(s.baseStats["prod.spruce"] ?? 0, "prod.spruce", effects);
+      // ----- Background gathering engine -----
+      const activeId = s.gather.activeNodeId;
+      if (!activeId) {
+        return { effects };
+      }
 
-      const stone = resolveStat(s.baseStats["prod.stone"] ?? 0, "prod.stone", effects);
-      const iron = resolveStat(s.baseStats["prod.iron"] ?? 0, "prod.iron", effects);
-      const copper = resolveStat(s.baseStats["prod.copper"] ?? 0, "prod.copper", effects);
+      const node = GATHER_NODES[activeId];
+      if (!node) {
+        // invalid id; stop safely
+        return {
+          effects,
+          gather: {
+            activeNodeId: null,
+            gatherLastTickAt: null,
+            gatherProgress01: 0,
+          },
+        };
+      }
+
+      // If locked, stop (or you can keep selected but not running)
+      if (node.requirement.type === "resource_amount") {
+        const have = s.resources[node.requirement.resourceId] ?? 0;
+        if (have < node.requirement.amount) {
+          return {
+            effects,
+            gather: { ...s.gather, gatherProgress01: 0, gatherLastTickAt: now },
+          };
+        }
+      }
+
+      // Snapshot last tick time; if null, initialize
+      const last = s.gather.gatherLastTickAt ?? now;
+      const elapsedMs = Math.max(0, now - last);
+
+      // Resolve effective speed/reward using same keys as your card
+      const amountKey = (node.amountStatKey ??
+        `prod.${node.resourceId}.amount`) as StatKey;
+      const multKey = (node.multStatKey ??
+        `prod.${node.resourceId}.mult`) as StatKey;
+      const speedKey = (node.speedStatKey ??
+        `prod.${node.resourceId}.speed`) as StatKey;
+
+      const amountAdd = resolveStat(
+        s.baseStats[amountKey] ?? 0,
+        amountKey,
+        effects,
+      );
+      const amountMult = resolveStat(
+        s.baseStats[multKey] ?? 1,
+        multKey,
+        effects,
+      );
+      const speedMult = resolveStat(
+        s.baseStats[speedKey] ?? 1,
+        speedKey,
+        effects,
+      );
+      const xpMult = resolveStat(
+        s.baseStats["xp.gain.mult"] ?? 1,
+        "xp.gain.mult",
+        effects,
+      );
+
+      const reward = Math.max(0, (node.rewardAmount + amountAdd) * amountMult);
+      const xp = Math.max(0, node.xp * xpMult);
+
+      const durationMs = Math.max(
+        50,
+        (node.durationSeconds / Math.max(0.01, speedMult)) * 1000,
+      );
+
+      // Current progress (0..durationMs) + elapsed
+      const currentProgressMs = s.gather.gatherProgress01 * durationMs;
+      const totalMs = currentProgressMs + elapsedMs;
+
+      const completed = Math.floor(totalMs / durationMs);
+      const remainderMs = totalMs - completed * durationMs;
+      const nextProgress01 = clamp01(remainderMs / durationMs);
+
+      const hasAward = completed > 0;
+
+      const nextResources = hasAward
+        ? {
+            ...s.resources,
+            [node.resourceId]:
+              (s.resources[node.resourceId] ?? 0) + reward * completed,
+            xp: (s.resources.xp ?? 0) + xp * completed,
+          }
+        : s.resources;
+
+      const nextDiscovered =
+        hasAward && !s.discovered[node.resourceId]
+          ? { ...s.discovered, [node.resourceId]: true }
+          : s.discovered;
 
       return {
         effects,
-        resources: {
-          ...s.resources,
-          oak: s.discovered.oak ? s.resources.oak + oak * dtSeconds : s.resources.oak,
-          birch: s.discovered.birch ? s.resources.birch + birch * dtSeconds : s.resources.birch,
-          spruce: s.discovered.spruce ? s.resources.spruce + spruce * dtSeconds : s.resources.spruce,
-          stone: s.discovered.stone ? s.resources.stone + stone * dtSeconds : s.resources.stone,
-          iron: s.discovered.iron ? s.resources.iron + iron * dtSeconds : s.resources.iron,
-          copper: s.discovered.copper ? s.resources.copper + copper * dtSeconds : s.resources.copper,
+        resources: nextResources,
+        discovered: nextDiscovered,
+        gather: {
+          activeNodeId: s.gather.activeNodeId,
+          gatherLastTickAt: now,
+          gatherProgress01: nextProgress01,
         },
       };
     }),

@@ -6,6 +6,8 @@ export type StatKey =
   | "prod.oak.amount" | "prod.oak.mult" | "prod.oak.speed"
   | "prod.birch.amount" | "prod.birch.mult" | "prod.birch.speed"
   | "prod.spruce.amount" | "prod.spruce.mult" | "prod.spruce.speed"
+
+  | "prod.pebbles.amount" | "prod.pebbles.mult" | "prod.pebbles.speed"
   | "prod.stone.amount" | "prod.stone.mult" | "prod.stone.speed"
   | "prod.iron.amount" | "prod.iron.mult" | "prod.iron.speed"
   | "prod.copper.amount" | "prod.copper.mult" | "prod.copper.speed"

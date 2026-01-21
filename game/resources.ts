@@ -1,4 +1,4 @@
-export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'stone' | 'iron' | 'copper';
+export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'pebbles' | 'stone' | 'iron' | 'copper';
 
 export type ResourceDef = {
   id: ResourceId;
@@ -15,12 +15,13 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   gold: { id: 'gold', name: 'Gold', decimals: 0, startsDiscovered: true },
 
   // Tree Cutting Resources
-  oak: { id: 'oak', name: 'Oak', decimals: 0, startsDiscovered: true },
+  oak: { id: 'oak', name: 'Oak', decimals: 0, startsDiscovered: false },
   birch: { id: 'birch', name: 'Birch', decimals: 0, startsDiscovered: false },
   spruce: { id: 'spruce', name: 'Spruce', decimals: 0, startsDiscovered: false },
 
   // Mine Resources
-  stone: { id: 'stone', name: 'Stone', decimals: 0, startsDiscovered: true },
+  pebbles: { id: 'stone', name: 'Pebbles', decimals: 0, startsDiscovered: false },
+  stone: { id: 'stone', name: 'Stone', decimals: 0, startsDiscovered: false },
   iron: { id: 'iron', name: 'Iron', decimals: 0, startsDiscovered: false },
   copper: { id: 'copper', name: 'Copper', decimals: 0, startsDiscovered: false },
 };

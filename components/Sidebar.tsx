@@ -9,6 +9,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Store", href: "/store" },
     { name: "Wood Cutting", href: "/woodcutting" },
+    { name: "Mining", href: "/mine"}
     // Add as many as you want – sidebar will scroll
   ];
 
