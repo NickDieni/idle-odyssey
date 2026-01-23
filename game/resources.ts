@@ -1,4 +1,4 @@
-export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'pebbles' | 'stone' | 'iron' | 'copper';
+export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'pebbles' | 'stone' | 'iron' | 'copper' | 'worm' | 'minifish' | 'smallfish' | 'goldfish';
 
 export type ResourceDef = {
   id: ResourceId;
@@ -20,8 +20,16 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   spruce: { id: 'spruce', name: 'Spruce', decimals: 0, startsDiscovered: false },
 
   // Mine Resources
-  pebbles: { id: 'stone', name: 'Pebbles', decimals: 0, startsDiscovered: false },
+  pebbles: { id: 'pebbles', name: 'Pebbles', decimals: 0, startsDiscovered: false },
   stone: { id: 'stone', name: 'Stone', decimals: 0, startsDiscovered: false },
   iron: { id: 'iron', name: 'Iron', decimals: 0, startsDiscovered: false },
   copper: { id: 'copper', name: 'Copper', decimals: 0, startsDiscovered: false },
+
+  // Fish Resources
+  worm: { id: 'worm', name: 'Worm', decimals: 0, startsDiscovered: false },
+  minifish: { id: 'minifish', name: 'Mini Fish', decimals: 0, startsDiscovered: false },
+  smallfish: { id: 'smallfish', name: 'Small Fish', decimals: 0, startsDiscovered: false },
+  goldfish: { id: 'goldfish', name: 'Goldfish', decimals: 0, startsDiscovered: false },
+
+
 };

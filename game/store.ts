@@ -5,11 +5,14 @@ import { RESOURCES, type ResourceId } from "./resources";
 import { UPGRADES } from "@/game/upgrades";
 import type { Cost } from "@/game/upgrades";
 import { SELL_PRICES } from "@/game/selling";
+import { rollFish } from "@/game/fishing";
+
 
 // IMPORTANT: you need a registry of nodes by id for the store to run gathering.
 // Create this module to export your nodes.
 // Adjust this import path to where you place it:
 import { GATHER_NODES } from "@/game/nodes";
+import type { AnyNode, FishingNode } from "@/game/types";
 
 /* =======================
    Types
@@ -112,9 +115,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     oak: 0,
     birch: 0,
     spruce: 0,
+    pebbles: 0,
     stone: 0,
     iron: 0,
     copper: 0,
+    worm: 0,
+    minifish: 0,
+    smallfish: 0,
+    goldfish: 0,
   },
 
   discovered: buildInitialDiscovered(),
@@ -151,6 +159,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     "prod.copper.amount": 0,
     "prod.copper.mult": 1,
     "prod.copper.speed": 1,
+
+    // Fish stuff
+    "prod.worm.amount": 0,
+    "prod.worm.mult": 1,
+    "prod.worm.speed": 1,
+
+    "prod.minifish.amount": 0,
+    "prod.minifish.mult": 1,
+    "prod.minifish.speed": 1,
+
+    "prod.smallfish.amount": 0,
+    "prod.smallfish.mult": 1,
+    "prod.smallfish.speed": 1,
+
+    "prod.goldfish.amount": 0,
+    "prod.goldfish.mult": 1,
+    "prod.goldfish.speed": 1,
   } as BaseStats,
 
   effects: [],
@@ -310,52 +335,127 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   /* ---------- Tick (includes background/offscreen gathering) ---------- */
 
-  tick: (dtSeconds) =>
-    set((s) => {
-      const now = Date.now();
-      const effects = pruneExpiredEffects(s.effects, now);
+ tick: (dtSeconds) =>
+  set((s) => {
+    const now = Date.now();
+    const effects = pruneExpiredEffects(s.effects, now);
 
-      // ----- Background gathering engine -----
-      const activeId = s.gather.activeNodeId;
-      if (!activeId) {
-        return { effects };
-      }
+    // ----- Background gathering engine -----
+    const activeId = s.gather.activeNodeId;
+    if (!activeId) {
+      return { effects };
+    }
 
-      const node = GATHER_NODES[activeId];
-      if (!node) {
-        // invalid id; stop safely
+    const node = GATHER_NODES[activeId] as AnyNode | undefined;
+    if (!node) {
+      // invalid id; stop safely
+      return {
+        effects,
+        gather: {
+          activeNodeId: null,
+          gatherLastTickAt: null,
+          gatherProgress01: 0,
+        },
+      };
+    }
+
+    // If locked, stop (or you can keep selected but not running)
+    if (node.requirement.type === "resource_amount") {
+      const have = s.resources[node.requirement.resourceId] ?? 0;
+      if (have < node.requirement.amount) {
         return {
           effects,
-          gather: {
-            activeNodeId: null,
-            gatherLastTickAt: null,
-            gatherProgress01: 0,
-          },
+          gather: { ...s.gather, gatherProgress01: 0, gatherLastTickAt: now },
         };
       }
+    }
 
-      // If locked, stop (or you can keep selected but not running)
-      if (node.requirement.type === "resource_amount") {
-        const have = s.resources[node.requirement.resourceId] ?? 0;
-        if (have < node.requirement.amount) {
-          return {
-            effects,
-            gather: { ...s.gather, gatherProgress01: 0, gatherLastTickAt: now },
-          };
+    // Snapshot last tick time; if null, initialize
+    const last = s.gather.gatherLastTickAt ?? now;
+    const elapsedMs = Math.max(0, now - last);
+
+    // Resolve speed stat
+    // - For wood/mining: default prod.<resourceId>.speed
+    // - For fishing: default prod.fishing.speed (or node.speedStatKey override)
+    const speedKey = (node.speedStatKey ??
+      (node.category === "fishing"
+        ? "prod.fishing.speed"
+        : `prod.${node.resourceId}.speed`)) as StatKey;
+
+    const speedMult = resolveStat(
+      s.baseStats[speedKey] ?? 1,
+      speedKey,
+      effects,
+    );
+
+    const xpMult = resolveStat(
+      s.baseStats["xp.gain.mult"] ?? 1,
+      "xp.gain.mult",
+      effects,
+    );
+
+    const xpPerCompletion = Math.max(0, node.xp * xpMult);
+
+    const durationMs = Math.max(
+      50,
+      (node.durationSeconds / Math.max(0.01, speedMult)) * 1000,
+    );
+
+    // Current progress (0..durationMs) + elapsed
+    const currentProgressMs = s.gather.gatherProgress01 * durationMs;
+    const totalMs = currentProgressMs + elapsedMs;
+
+    const completed = Math.floor(totalMs / durationMs);
+    const remainderMs = totalMs - completed * durationMs;
+    const nextProgress01 = clamp01(remainderMs / durationMs);
+
+    const hasAward = completed > 0;
+
+    // No completions: just advance timing/progress
+    if (!hasAward) {
+      return {
+        effects,
+        gather: {
+          activeNodeId: s.gather.activeNodeId,
+          gatherLastTickAt: now,
+          gatherProgress01: nextProgress01,
+        },
+      };
+    }
+
+    // From here: we have 1+ completions to award
+    let nextResources = s.resources;
+    let nextDiscovered = s.discovered;
+
+    // Always grant XP for completions
+    nextResources = {
+      ...nextResources,
+      xp: (nextResources.xp ?? 0) + xpPerCompletion * completed,
+    };
+
+    if (node.category === "fishing") {
+      const fnode = node as FishingNode;
+
+      // Award 1 fish per completion
+      for (let i = 0; i < completed; i++) {
+        const fishId = rollFish(fnode.fishTable);
+        if (!fishId) continue;
+
+        nextResources = {
+          ...nextResources,
+          [fishId]: (nextResources[fishId] ?? 0) + 1,
+        };
+
+        if (!nextDiscovered[fishId]) {
+          nextDiscovered = { ...nextDiscovered, [fishId]: true };
         }
       }
-
-      // Snapshot last tick time; if null, initialize
-      const last = s.gather.gatherLastTickAt ?? now;
-      const elapsedMs = Math.max(0, now - last);
-
-      // Resolve effective speed/reward using same keys as your card
+    } else {
+      // Woodcutting/mining: preserve your existing amount/mult logic
       const amountKey = (node.amountStatKey ??
         `prod.${node.resourceId}.amount`) as StatKey;
       const multKey = (node.multStatKey ??
         `prod.${node.resourceId}.mult`) as StatKey;
-      const speedKey = (node.speedStatKey ??
-        `prod.${node.resourceId}.speed`) as StatKey;
 
       const amountAdd = resolveStat(
         s.baseStats[amountKey] ?? 0,
@@ -367,58 +467,29 @@ export const useGameStore = create<GameState>((set, get) => ({
         multKey,
         effects,
       );
-      const speedMult = resolveStat(
-        s.baseStats[speedKey] ?? 1,
-        speedKey,
-        effects,
-      );
-      const xpMult = resolveStat(
-        s.baseStats["xp.gain.mult"] ?? 1,
-        "xp.gain.mult",
-        effects,
-      );
 
       const reward = Math.max(0, (node.rewardAmount + amountAdd) * amountMult);
-      const xp = Math.max(0, node.xp * xpMult);
 
-      const durationMs = Math.max(
-        50,
-        (node.durationSeconds / Math.max(0.01, speedMult)) * 1000,
-      );
-
-      // Current progress (0..durationMs) + elapsed
-      const currentProgressMs = s.gather.gatherProgress01 * durationMs;
-      const totalMs = currentProgressMs + elapsedMs;
-
-      const completed = Math.floor(totalMs / durationMs);
-      const remainderMs = totalMs - completed * durationMs;
-      const nextProgress01 = clamp01(remainderMs / durationMs);
-
-      const hasAward = completed > 0;
-
-      const nextResources = hasAward
-        ? {
-            ...s.resources,
-            [node.resourceId]:
-              (s.resources[node.resourceId] ?? 0) + reward * completed,
-            xp: (s.resources.xp ?? 0) + xp * completed,
-          }
-        : s.resources;
-
-      const nextDiscovered =
-        hasAward && !s.discovered[node.resourceId]
-          ? { ...s.discovered, [node.resourceId]: true }
-          : s.discovered;
-
-      return {
-        effects,
-        resources: nextResources,
-        discovered: nextDiscovered,
-        gather: {
-          activeNodeId: s.gather.activeNodeId,
-          gatherLastTickAt: now,
-          gatherProgress01: nextProgress01,
-        },
+      nextResources = {
+        ...nextResources,
+        [node.resourceId]:
+          (nextResources[node.resourceId] ?? 0) + reward * completed,
       };
-    }),
+
+      if (!nextDiscovered[node.resourceId]) {
+        nextDiscovered = { ...nextDiscovered, [node.resourceId]: true };
+      }
+    }
+
+    return {
+      effects,
+      resources: nextResources,
+      discovered: nextDiscovered,
+      gather: {
+        activeNodeId: s.gather.activeNodeId,
+        gatherLastTickAt: now,
+        gatherProgress01: nextProgress01,
+      },
+    };
+  }),
 }));

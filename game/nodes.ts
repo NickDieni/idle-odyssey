@@ -1,5 +1,5 @@
 // src/game/nodes.ts
-import type { GatherNode, NodeCategory } from "@/game/types";
+import type { GatherNode, NodeCategory, FishingNode, AnyNode } from "@/game/types";
 
 // -------------------------
 // WOODCUTTING
@@ -78,7 +78,7 @@ export const MINING_NODES: GatherNode[] = [
     actionVerb: "Mine",
     label: "Copper Vein",
     resourceId: "copper",
-    //iconSrc: "/icons/copper.png",
+    iconSrc: "/icons/copper.png",
     xp: 8,
     durationSeconds: 3,
     rewardAmount: 1,
@@ -90,18 +90,40 @@ export const MINING_NODES: GatherNode[] = [
     actionVerb: "Mine",
     label: "Iron Vein",
     resourceId: "iron",
-    //iconSrc: "/icons/iron.png",
+    iconSrc: "/icons/iron.png",
     xp: 8,
     durationSeconds: 3,
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "copper", amount: 150 },
   },
 ];
+export const FISHING_NODES: FishingNode[] = [
+  {
+    id: "fish.fishtank",
+    category: "fishing",
+    actionVerb: "Fish",
+    label: "Fish Tank",
+    iconSrc: "/icons/fishtank.png",
+    xp: 6,
+    durationSeconds: 4,
+    requirement: { type: "resource_amount", resourceId: "oak", amount: 1 },
+    rewardAmount: 1,
+    // show 4 fish icons at a time like your mock
+    visibleFishCount: 4,
+
+    fishTable: [
+      { resourceId: "worm", chance: 50, iconSrc: "/icons/worm.png", label: "Worm" },
+      { resourceId: "minifish", chance: 30, iconSrc: "/icons/minifish.png", label: "Mini Fish" },
+      { resourceId: "smallfish", chance: 15, iconSrc: "/icons/smallfish.png", label: "Small Fish" },
+      { resourceId: "goldfish", chance: 5, iconSrc: "/icons/goldfish.png", label: "Goldfish" },
+    ],
+  },
+];
 
 // -------------------------
 // ALL NODES
 // -------------------------
-export const ALL_NODES: GatherNode[] = [...WOODCUTTING_NODES, ...MINING_NODES];
+export const ALL_NODES: GatherNode[] = [...WOODCUTTING_NODES, ...MINING_NODES, ...FISHING_NODES];
 
 // -------------------------
 // Store lookup (for background/offscreen progress)

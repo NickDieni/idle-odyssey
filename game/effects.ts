@@ -2,6 +2,9 @@ export type StatKey =
   // XP
   | "xp.gain.mult"
 
+  // Fishing speed
+  | "prod.fishing.speed"
+
   // Production: amount/mult/speed for gather nodes
   | "prod.oak.amount" | "prod.oak.mult" | "prod.oak.speed"
   | "prod.birch.amount" | "prod.birch.mult" | "prod.birch.speed"
@@ -12,6 +15,10 @@ export type StatKey =
   | "prod.iron.amount" | "prod.iron.mult" | "prod.iron.speed"
   | "prod.copper.amount" | "prod.copper.mult" | "prod.copper.speed"
 
+  | "prod.worm.amount" | "prod.worm.mult" | "prod.worm.speed"
+  | "prod.minifish.amount" | "prod.minifish.mult" | "prod.minifish.speed"
+  | "prod.smallFish.amount" | "prod.smallFish.mult" | "prod.smallFish.speed"
+  | "prod.goldfish.amount" | "prod.goldfish.mult" | "prod.goldfish.speed"
   // If you still use passive income tick stats, add them too:
   | "prod.gold";
 
