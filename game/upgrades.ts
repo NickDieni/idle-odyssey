@@ -9,6 +9,10 @@ export type UpgradeDef = {
   description: string;
   cost: Cost;
 
+  // Category for organizing in store
+  category: 'woodcutting' | 'mining' | 'fishing' | 'general';
+  material?: ResourceId; // specific material this upgrade affects (oak, stone, etc.)
+
   // Permanent upgrades apply effects
   effects?: Effect[];
 
@@ -19,11 +23,15 @@ export type UpgradeDef = {
 };
 
 export const UPGRADES: UpgradeDef[] = [
+  // Woodcutting Upgrades
+  // Oak Upgrades
   {
     id: "wood.amount.plus1",
     name: "Sharper Axe",
     description: "+1 Wood per cut",
     cost: { gold: 25 },
+    category: 'woodcutting',
+    material: 'oak',
     effects: [
       {
         id: "eff.wood.amount.plus1",
@@ -38,6 +46,8 @@ export const UPGRADES: UpgradeDef[] = [
     name: "Fast Hands",
     description: "Cutting speed x2",
     cost: { gold: 75, oak: 25 },
+    category: 'woodcutting',
+    material: 'oak',
     effects: [
       {
         id: "eff.wood.speed.x2",
@@ -47,11 +57,51 @@ export const UPGRADES: UpgradeDef[] = [
       },
     ],
   },
+  // Birch Upgrades
+    {
+    id: "wood.amount.plus1",
+    name: "Sharper Axe",
+    description: "+1 Wood per cut",
+    cost: { gold: 25 },
+    category: 'woodcutting',
+    material: 'birch',
+    effects: [
+      {
+        id: "eff.wood.amount.plus1",
+        name: "Wood Amount +1",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.birch.amount", type: "add", value: 1 }],
+      },
+    ],
+  },
+  {
+    id: "wood.speed.x2",
+    name: "Fast Hands",
+    description: "Cutting speed x2",
+    cost: { gold: 75, birch: 25 },
+    category: 'woodcutting',
+    material: 'birch',
+    effects: [
+      {
+        id: "eff.wood.speed.x2",
+        name: "Wood Speed x2",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.birch.speed", type: "mul", value: 2 }],
+      },
+    ],
+  },
+
+
+
+
+  // General Upgrades
+  // Xp Upgrades
   {
     id: "xp.mult.x1_5",
     name: "Training Manual",
     description: "XP gain x1.5",
     cost: { gold: 100 },
+    category: 'general',
     effects: [
       {
         id: "eff.xp.mult.x1_5",
@@ -61,4 +111,5 @@ export const UPGRADES: UpgradeDef[] = [
       },
     ],
   },
+
 ];

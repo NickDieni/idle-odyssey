@@ -58,7 +58,7 @@ export const MINING_NODES: GatherNode[] = [
     xp: 3,
     durationSeconds: 2,
     rewardAmount: 1,
-    requirement: { type: "resource_amount", resourceId: "oak", amount: 15 },
+    requirement: { type: "none" },
   },
   {
     id: "mine.stone",
@@ -106,7 +106,7 @@ export const FISHING_NODES: FishingNode[] = [
     iconSrc: "/icons/fishtank.png",
     xp: 6,
     durationSeconds: 4,
-    requirement: { type: "resource_amount", resourceId: "oak", amount: 1 },
+    requirement: { type: "none"},
     rewardAmount: 1,
     // show 4 fish icons at a time like your mock
     visibleFishCount: 4,
