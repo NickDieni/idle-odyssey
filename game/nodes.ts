@@ -1,5 +1,10 @@
 // src/game/nodes.ts
-import type { GatherNode, NodeCategory, FishingNode, AnyNode } from "@/game/types";
+import type {
+  GatherNode,
+  NodeCategory,
+  FishingNode,
+  AnyNode,
+} from "@/game/types";
 
 // -------------------------
 // WOODCUTTING
@@ -41,6 +46,18 @@ export const WOODCUTTING_NODES: GatherNode[] = [
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "birch", amount: 100 },
   },
+  {
+    id: "tree.maple",
+    category: "woodcutting",
+    actionVerb: "Cut",
+    label: "Maple Tree",
+    resourceId: "maple",
+    iconSrc: "/icons/maple.png",
+    xp: 100,
+    durationSeconds: 3,
+    rewardAmount: 1,
+    requirement: { type: "resource_amount", resourceId: "spruce", amount: 200 },
+  },
 ];
 
 // -------------------------
@@ -72,19 +89,31 @@ export const MINING_NODES: GatherNode[] = [
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "pebbles", amount: 35 },
   },
-    {
+  {
     id: "mine.copper",
     category: "mining",
     actionVerb: "Mine",
     label: "Copper Vein",
     resourceId: "copper",
     iconSrc: "/icons/copper.png",
-    xp: 8,
+    xp: 20,
     durationSeconds: 3,
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "stone", amount: 90 },
   },
-    {
+  {
+    id: "mine.tin",
+    category: "mining",
+    actionVerb: "Mine",
+    label: "Tin Vein",
+    resourceId: "tin",
+    iconSrc: "/icons/tin.png",
+    xp: 45,
+    durationSeconds: 3,
+    rewardAmount: 1,
+    requirement: { type: "resource_amount", resourceId: "copper", amount: 120 },
+  },
+  {
     id: "mine.iron",
     category: "mining",
     actionVerb: "Mine",
@@ -94,7 +123,7 @@ export const MINING_NODES: GatherNode[] = [
     xp: 8,
     durationSeconds: 3,
     rewardAmount: 1,
-    requirement: { type: "resource_amount", resourceId: "copper", amount: 150 },
+    requirement: { type: "resource_amount", resourceId: "tin", amount: 150 },
   },
 ];
 export const FISHING_NODES: FishingNode[] = [
@@ -106,16 +135,36 @@ export const FISHING_NODES: FishingNode[] = [
     iconSrc: "/icons/fishtank.png",
     xp: 6,
     durationSeconds: 4,
-    requirement: { type: "none"},
+    requirement: { type: "none" },
     rewardAmount: 1,
     // show 4 fish icons at a time like your mock
     visibleFishCount: 4,
 
     fishTable: [
-      { resourceId: "worm", chance: 50, iconSrc: "/icons/worm.png", label: "Worm" },
-      { resourceId: "minifish", chance: 30, iconSrc: "/icons/minifish.png", label: "Mini Fish" },
-      { resourceId: "smallfish", chance: 15, iconSrc: "/icons/smallfish.png", label: "Small Fish" },
-      { resourceId: "goldfish", chance: 5, iconSrc: "/icons/goldfish.png", label: "Goldfish" },
+      {
+        resourceId: "worm",
+        chance: 50,
+        iconSrc: "/icons/worm.png",
+        label: "Worm",
+      },
+      {
+        resourceId: "minifish",
+        chance: 30,
+        iconSrc: "/icons/minifish.png",
+        label: "Mini Fish",
+      },
+      {
+        resourceId: "smallfish",
+        chance: 15,
+        iconSrc: "/icons/smallfish.png",
+        label: "Small Fish",
+      },
+      {
+        resourceId: "goldfish",
+        chance: 5,
+        iconSrc: "/icons/goldfish.png",
+        label: "Goldfish",
+      },
     ],
   },
 ];
@@ -123,7 +172,11 @@ export const FISHING_NODES: FishingNode[] = [
 // -------------------------
 // ALL NODES
 // -------------------------
-export const ALL_NODES: GatherNode[] = [...WOODCUTTING_NODES, ...MINING_NODES, ...FISHING_NODES];
+export const ALL_NODES: GatherNode[] = [
+  ...WOODCUTTING_NODES,
+  ...MINING_NODES,
+  ...FISHING_NODES,
+];
 
 // -------------------------
 // Store lookup (for background/offscreen progress)

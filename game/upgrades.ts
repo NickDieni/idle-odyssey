@@ -90,6 +90,72 @@ export const UPGRADES: UpgradeDef[] = [
       },
     ],
   },
+  // Spruce Upgrades
+    {
+    id: "wood.amount.plus1",
+    name: "Sharper Axe",
+    description: "+1 Wood per cut",
+    cost: { gold: 25 },
+    category: 'woodcutting',
+    material: 'spruce',
+    effects: [
+      {
+        id: "eff.wood.amount.plus1",
+        name: "Wood Amount +1",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.spruce.amount", type: "add", value: 1 }],
+      },
+    ],
+  },
+  {
+    id: "wood.speed.x2",
+    name: "Fast Hands",
+    description: "Cutting speed x2",
+    cost: { gold: 75, spruce: 25 },
+    category: 'woodcutting',
+    material: 'spruce',
+    effects: [
+      {
+        id: "eff.wood.speed.x2",
+        name: "Wood Speed x2",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.spruce.speed", type: "mul", value: 2 }],
+      },
+    ],
+  },
+  // maple Upgrades
+    {
+    id: "wood.amount.plus1",
+    name: "Sharper Axe",
+    description: "+1 Wood per cut",
+    cost: { gold: 25 },
+    category: 'woodcutting',
+    material: 'maple',
+    effects: [
+      {
+        id: "eff.wood.amount.plus1",
+        name: "Wood Amount +1",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.maple.amount", type: "add", value: 1 }],
+      },
+    ],
+  },
+  {
+    id: "wood.speed.x2",
+    name: "Fast Hands",
+    description: "Cutting speed x2",
+    cost: { gold: 75, maple: 25 },
+    category: 'woodcutting',
+    material: 'maple',
+    effects: [
+      {
+        id: "eff.wood.speed.x2",
+        name: "Wood Speed x2",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.maple.speed", type: "mul", value: 2 }],
+      },
+    ],
+  },
 
 
 

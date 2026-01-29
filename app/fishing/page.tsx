@@ -31,12 +31,12 @@ export default function FishingPage() {
   }, [tick]);
 
   return (
-    <main className="mx-auto max-w-4xl p-6 space-y-4">
-      <h1 className="text-2xl font-bold text-white">Fishing</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">The Forrest</h1>
 
       {fishingNodes.map((node) => (
         <FishingNodeCard key={node.id} node={node} />
       ))}
-    </main>
+    </div>
   );
 }

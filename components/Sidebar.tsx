@@ -8,6 +8,7 @@ export default function Sidebar() {
   const navItems = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Store", href: "/store" },
+    { name: "Crafting", href: "/crafting" },
     { name: "Wood Cutting", href: "/woodcutting" },
     { name: "Mining", href: "/mine"},
     { name: "Fishing", href: "/fishing" }

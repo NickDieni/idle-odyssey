@@ -3,12 +3,13 @@ import type { ResourceId } from "@/game/resources";
 
 export const SELL_PRICES: Partial<Record<ResourceId, number>> = {
   oak: 1,
-  birch: 2,
-  spruce: 3,
+  birch: 3,
+  spruce: 5,
+  maple: 8,
   pebbles: 1,
-  stone: 1,
-  iron: 5,
+  stone: 3,
   copper: 4,
+  iron: 5,
   worm: 1,
   minifish: 2,
   smallfish: 3,

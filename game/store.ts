@@ -115,10 +115,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     oak: 0,
     birch: 0,
     spruce: 0,
+    maple: 0,
     pebbles: 0,
     stone: 0,
-    iron: 0,
     copper: 0,
+    tin: 0,
+    iron: 0,
     worm: 0,
     minifish: 0,
     smallfish: 0,
@@ -143,6 +145,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     "prod.spruce.mult": 1,
     "prod.spruce.speed": 1,
 
+    "prod.maple.amount": 0,
+    "prod.maple.mult": 1,
+    "prod.maple.speed": 1,
+
     // Mine stuff
     "prod.pebbles.amount": 0,
     "prod.pebbles.mult": 1,
@@ -152,13 +158,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     "prod.stone.mult": 1,
     "prod.stone.speed": 1,
 
+    "prod.copper.amount": 0,
+    "prod.copper.mult": 1,
+    "prod.copper.speed": 1,
+
+    "prod.tin.amount": 0,
+    "prod.tin.mult": 1,
+    "prod.tin.speed": 1,
+
     "prod.iron.amount": 0,
     "prod.iron.mult": 1,
     "prod.iron.speed": 1,
 
-    "prod.copper.amount": 0,
-    "prod.copper.mult": 1,
-    "prod.copper.speed": 1,
 
     // Fish stuff
     "prod.worm.amount": 0,

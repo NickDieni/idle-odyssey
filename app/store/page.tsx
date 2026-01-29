@@ -9,7 +9,7 @@ type Category = 'woodcutting' | 'mining' | 'fishing' | 'general';
 
 // Define materials for each category
 const CATEGORY_MATERIALS: Record<Category, ResourceId[]> = {
-  woodcutting: ['oak', 'birch', 'spruce'],
+  woodcutting: ['oak', 'birch', 'spruce', 'maple'],
   mining: ['pebbles', 'stone', 'copper', 'iron'],
   fishing: ['worm', 'minifish', 'smallfish', 'goldfish'],
   general: [], // No material subtabs for general
@@ -26,6 +26,7 @@ const MATERIAL_LABELS: Record<string, string> = {
   oak: 'Oak',
   birch: 'Birch',
   spruce: 'Spruce',
+  maple: 'Maple',
   pebbles: 'Pebbles',
   stone: 'Stone',
   copper: 'Copper',

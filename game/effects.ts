@@ -9,15 +9,17 @@ export type StatKey =
   | "prod.oak.amount" | "prod.oak.mult" | "prod.oak.speed"
   | "prod.birch.amount" | "prod.birch.mult" | "prod.birch.speed"
   | "prod.spruce.amount" | "prod.spruce.mult" | "prod.spruce.speed"
+  | "prod.maple.amount" | "prod.maple.mult" | "prod.maple.speed"
 
   | "prod.pebbles.amount" | "prod.pebbles.mult" | "prod.pebbles.speed"
   | "prod.stone.amount" | "prod.stone.mult" | "prod.stone.speed"
-  | "prod.iron.amount" | "prod.iron.mult" | "prod.iron.speed"
+  | "prod.tin.amount" | "prod.tin.mult" | "prod.tin.speed"
   | "prod.copper.amount" | "prod.copper.mult" | "prod.copper.speed"
+  | "prod.iron.amount" | "prod.iron.mult" | "prod.iron.speed"
 
   | "prod.worm.amount" | "prod.worm.mult" | "prod.worm.speed"
   | "prod.minifish.amount" | "prod.minifish.mult" | "prod.minifish.speed"
-  | "prod.smallFish.amount" | "prod.smallFish.mult" | "prod.smallFish.speed"
+  | "prod.smallfish.amount" | "prod.smallfish.mult" | "prod.smallfish.speed"
   | "prod.goldfish.amount" | "prod.goldfish.mult" | "prod.goldfish.speed"
   // If you still use passive income tick stats, add them too:
   | "prod.gold";
