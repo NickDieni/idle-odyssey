@@ -1,4 +1,4 @@
-export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'maple' | 'pebbles' | 'stone' | 'copper' | 'tin' |'iron' | 'worm' | 'minifish' | 'smallfish' | 'goldfish';
+export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'maple' | 'pebbles' | 'stone' | 'copper' | 'tin' |'iron' | 'bronze_bar' | 'worm' | 'minifish' | 'smallfish' | 'goldfish';
 
 export type ResourceDef = {
   id: ResourceId;
@@ -26,6 +26,7 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   copper: { id: 'copper', name: 'Copper', decimals: 0, startsDiscovered: false },
   tin: { id: 'tin', name: 'Tin', decimals: 0, startsDiscovered: false },
   iron: { id: 'iron', name: 'Iron', decimals: 0, startsDiscovered: false },
+  bronze_bar: { id: 'bronze_bar', name: 'Bronze Bar', decimals: 0, startsDiscovered: false },
 
   // Fish Resources
   worm: { id: 'worm', name: 'Worm', decimals: 0, startsDiscovered: false },

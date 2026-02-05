@@ -2,7 +2,7 @@
 
 import { UPGRADES, type UpgradeDef } from '@/game/upgrades';
 import { useGameStore } from '@/game/store';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { ResourceId } from '@/game/resources';
 
 type Category = 'woodcutting' | 'mining' | 'fishing' | 'general';
@@ -77,7 +77,6 @@ function UpgradeCard({ upgrade }: { upgrade: UpgradeDef }) {
 
 export default function StorePage() {
   const [activeCategory, setActiveCategory] = useState<Category>('woodcutting');
-  const [activeMaterial, setActiveMaterial] = useState<ResourceId | null>('oak');
 
   // Group upgrades by category and material
   const upgradesByCategory = useMemo(() => {
@@ -112,14 +111,13 @@ export default function StorePage() {
     );
   }, [activeCategory, upgradesByCategory]);
 
-  // Auto-select first available material when category changes
-  useMemo(() => {
+  // Derive active material from category and available materials
+  const activeMaterial = useMemo(() => {
     if (activeCategory === 'general') {
-      setActiveMaterial(null);
-    } else if (availableMaterials.length > 0 && !availableMaterials.includes(activeMaterial as ResourceId)) {
-      setActiveMaterial(availableMaterials[0]);
+      return null;
     }
-  }, [activeCategory, availableMaterials, activeMaterial]);
+    return availableMaterials.length > 0 ? availableMaterials[0] : null;
+  }, [activeCategory, availableMaterials]);
 
   // Get upgrades to display
   const displayedUpgrades = useMemo(() => {
@@ -154,25 +152,7 @@ export default function StorePage() {
         ))}
       </div>
 
-      {/* Material Subtabs */}
-      {activeCategory !== 'general' && availableMaterials.length > 0 && (
-        <div className="flex gap-2 border-b border-gray-800">
-          {availableMaterials.map((mat) => (
-            <button
-              key={mat}
-              onClick={() => setActiveMaterial(mat)}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeMaterial === mat
-                  ? 'text-gray-500 hover:text-gray-400'
-                  : 'text-gray-500 hover:text-gray-400'
-              }`}
-              style={activeMaterial === mat ? { color: '#d8b4fe' } : undefined}
-            >
-              {MATERIAL_LABELS[mat]}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Material Subtabs - Hidden since material is now derived */}
 
       {/* Upgrades Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

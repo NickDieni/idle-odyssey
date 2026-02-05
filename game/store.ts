@@ -6,6 +6,7 @@ import { UPGRADES } from "@/game/upgrades";
 import type { Cost } from "@/game/upgrades";
 import { SELL_PRICES } from "@/game/selling";
 import { rollFish } from "@/game/fishing";
+import { CRAFT_RECIPES, type CraftCost } from "@/game/crafting";
 
 
 // IMPORTANT: you need a registry of nodes by id for the store to run gathering.
@@ -53,6 +54,8 @@ type GameState = {
   // resource actions
   addResource: (id: ResourceId, amount: number) => void;
   setResource: (id: ResourceId, amount: number) => void;
+  canCraftRecipe: (recipeId: string) => boolean;
+  craftRecipe: (recipeId: string) => boolean;
 
   // selling
   getSellValue: (id: ResourceId, amount?: number) => number;
@@ -104,6 +107,37 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
+function canPayCraftCost(resources: ResourceAmounts, cost: CraftCost): boolean {
+  if (cost.type === "resource") {
+    return (resources[cost.resourceId] ?? 0) >= cost.amount;
+  }
+
+  const total = cost.resourceIds.reduce((sum, id) => sum + (resources[id] ?? 0), 0);
+  return total >= cost.amount;
+}
+
+function payCraftCost(resources: ResourceAmounts, cost: CraftCost): ResourceAmounts {
+  const next = { ...resources };
+
+  if (cost.type === "resource") {
+    next[cost.resourceId] = (next[cost.resourceId] ?? 0) - cost.amount;
+    return next;
+  }
+
+  let remaining = cost.amount;
+  for (const id of cost.resourceIds) {
+    if (remaining <= 0) break;
+    const have = next[id] ?? 0;
+    if (have <= 0) continue;
+
+    const take = Math.min(have, remaining);
+    next[id] = have - take;
+    remaining -= take;
+  }
+
+  return next;
+}
+
 /* =======================
    Store
 ======================= */
@@ -121,6 +155,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     copper: 0,
     tin: 0,
     iron: 0,
+    bronze_bar: 0,
     worm: 0,
     minifish: 0,
     smallfish: 0,
@@ -239,6 +274,44 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setResource: (id, amount) =>
     set((s) => ({ resources: { ...s.resources, [id]: amount } })),
+
+  canCraftRecipe: (recipeId) => {
+    const recipe = CRAFT_RECIPES[recipeId];
+    if (!recipe) return false;
+
+    const resources = get().resources;
+    return recipe.costs.every((cost) => canPayCraftCost(resources, cost));
+  },
+
+  craftRecipe: (recipeId) => {
+    const recipe = CRAFT_RECIPES[recipeId];
+    if (!recipe) return false;
+
+    const resources = get().resources;
+    const canCraft = recipe.costs.every((cost) => canPayCraftCost(resources, cost));
+    if (!canCraft) return false;
+
+    set((s) => {
+      let nextResources = { ...s.resources };
+
+      for (const cost of recipe.costs) {
+        nextResources = payCraftCost(nextResources, cost);
+      }
+
+      nextResources[recipe.output.resourceId] =
+        (nextResources[recipe.output.resourceId] ?? 0) + recipe.output.amount;
+
+      return {
+        resources: nextResources,
+        discovered: {
+          ...s.discovered,
+          [recipe.output.resourceId]: true,
+        },
+      };
+    });
+
+    return true;
+  },
 
   /* ---------- Selling ---------- */
 
