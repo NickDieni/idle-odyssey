@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useGameStore } from "@/game/store";
-import { RESOURCES } from "@/game/resources";
+import { RESOURCES, SELL_RESOURCES } from "@/game/resources";
 import type { FishingNode } from "@/game/types";
 
 // ---------- Helpers ----------
@@ -25,6 +25,7 @@ function requirementText(node: FishingNode) {
 // ---------- Component ----------
 export function FishingNodeCard({ node }: { node: FishingNode }) {
   const resources = useGameStore((s) => s.resources);
+  const permanentlyUnlocked = useGameStore((s) => !!s.unlockedNodes[node.id]);
   const gather = useGameStore((s) => s.gather);
   const setActiveNodeId = useGameStore((s) => s.setActiveNodeId);
   const getStat = useGameStore((s) => s.getStat);
@@ -33,12 +34,12 @@ export function FishingNodeCard({ node }: { node: FishingNode }) {
 
   // Unlock progress
   const unlockProgress = useMemo(() => {
-    if (node.requirement.type === "none") return 1;
+    if (permanentlyUnlocked || node.requirement.type === "none") return 1;
     const have = resources[node.requirement.resourceId] ?? 0;
     const need = node.requirement.amount;
     if (need <= 0) return 1;
     return clamp01(have / need);
-  }, [node.requirement, resources]);
+  }, [node.requirement, resources, permanentlyUnlocked]);
 
   const unlocked = unlockProgress >= 1;
 
@@ -49,7 +50,7 @@ export function FishingNodeCard({ node }: { node: FishingNode }) {
 
   const effectiveDurationSeconds = Math.max(
     0.05,
-    node.durationSeconds / Math.max(0.01, speedMult)
+    node.durationSeconds / Math.max(1, speedMult)
   );
   const effectiveXp = Math.max(0, node.xp * xpMult);
 
@@ -129,20 +130,20 @@ export function FishingNodeCard({ node }: { node: FishingNode }) {
 
               return (
                 <div
-                  key={f.resourceId}
+                  key={f.sellResourceId}
                   className="flex items-center justify-between text-sm text-slate-200"
                 >
                   <div className="flex items-center gap-2">
                     {f.iconSrc ? (
                       <img
                         src={f.iconSrc}
-                        alt={f.resourceId}
+                        alt={f.sellResourceId}
                         width={24}
                         height={24}
                         style={{ imageRendering: "pixelated" }}
                       />
                     ) : null}
-                    <span>{f.label ?? RESOURCES[f.resourceId]?.name ?? f.resourceId}</span>
+                    <span>{f.label ?? SELL_RESOURCES[f.sellResourceId]?.name ?? f.sellResourceId}</span>
                   </div>
                   <span className="text-slate-400">{pctChance.toFixed(1)}%</span>
                 </div>

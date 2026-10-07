@@ -1,5 +1,6 @@
-export type ResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'maple' | 'pebbles' | 'stone' | 'copper' | 'tin' |'iron' | 'bronze_bar' | 'worm' | 'minifish' | 'smallfish' | 'goldfish';
-
+export type MaterialResourceId = 'xp' | 'gold' | 'oak' | 'birch' | 'spruce' | 'maple' | 'pebbles' | 'stone' | 'copper' | 'tin' |'iron' | 'bronze_bar';
+export type SellResourceId =  'worm' | 'minifish' | 'smallfish' | 'goldfish';
+export type ResourceId = MaterialResourceId | SellResourceId;
 export type ResourceDef = {
   id: ResourceId;
   name: string;
@@ -7,7 +8,14 @@ export type ResourceDef = {
   startsDiscovered?: boolean;
 };
 
-export const RESOURCES: Record<ResourceId, ResourceDef> = {
+export type SellResourceDef = {
+  id: SellResourceId;
+  name: string;
+  decimals?: number;
+  startsDiscovered?: boolean;
+};
+
+const MATERIAL_RESOURCES: Record<MaterialResourceId, ResourceDef> = {
   // Level up resources
   xp: { id: 'xp', name: 'Experience', decimals: 0, startsDiscovered: true },
 
@@ -27,12 +35,18 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   tin: { id: 'tin', name: 'Tin', decimals: 0, startsDiscovered: false },
   iron: { id: 'iron', name: 'Iron', decimals: 0, startsDiscovered: false },
   bronze_bar: { id: 'bronze_bar', name: 'Bronze Bar', decimals: 0, startsDiscovered: false },
+};
 
-  // Fish Resources
+export const SELL_RESOURCES: Record<SellResourceId, SellResourceDef> = {
+   // Fish Resources
   worm: { id: 'worm', name: 'Worm', decimals: 0, startsDiscovered: false },
   minifish: { id: 'minifish', name: 'Mini Fish', decimals: 0, startsDiscovered: false },
   smallfish: { id: 'smallfish', name: 'Small Fish', decimals: 0, startsDiscovered: false },
   goldfish: { id: 'goldfish', name: 'Goldfish', decimals: 0, startsDiscovered: false },
+};
 
-
+// One inventory registry, including resources whose only use is selling.
+export const RESOURCES: Record<ResourceId, ResourceDef> = {
+  ...MATERIAL_RESOURCES,
+  ...SELL_RESOURCES,
 };

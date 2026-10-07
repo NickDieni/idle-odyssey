@@ -32,7 +32,7 @@ export default function FishingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">The Forrest</h1>
+      <h1 className="text-2xl font-semibold">The Fishing Spot</h1>
 
       {fishingNodes.map((node) => (
         <FishingNodeCard key={node.id} node={node} />

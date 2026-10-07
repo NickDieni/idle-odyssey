@@ -9,8 +9,9 @@ const nodes = getNodesByCategory("mining");
 export default function MinePage() {
   const resources = useGameStore((s) => s.resources);
   const discovered = useGameStore((s) => s.discovered);
+  const unlockedNodes = useGameStore((s) => s.unlockedNodes);
 
-  const nodesToShow = visibleNodes(nodes, resources, discovered);
+  const nodesToShow = visibleNodes(nodes, resources, discovered, unlockedNodes);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">The Mines</h1>

@@ -1,11 +1,12 @@
 // src/game/types.ts
-import type { ResourceId } from "@/game/resources";
+import type { ResourceId, SellResourceId } from "@/game/resources";
+import type { Cost } from "@/game/upgrades";
 import { UnlockRequirement } from "./unlocks";
 
 export type NodeCategory = "woodcutting" | "mining" | "fishing";
 
 export type FishEntry = {
-  resourceId: ResourceId;
+  sellResourceId: SellResourceId;
   chance: number; // relative chance (does NOT need to sum to 100)
   iconSrc?: string;
   label?: string;
@@ -51,6 +52,10 @@ export type GatherNode = {
   amountStatKey?: string;
   multStatKey?: string;
   speedStatKey?: string;
+  auto?: {
+    upgradeId: string;
+    cost: Cost;
+  };
 };
 
 export type AnyNode = GatherNode | FishingNode;

@@ -1,16 +1,28 @@
-import type { ResourceId } from '@/game/resources';
-import type { GatherNode } from '@/components/GatherNodeCard';
+import type { AnyNode, GatherNode } from '@/game/types';
+import { ALL_NODES } from '@/game/nodes';
 
 type ResourcesMap = Record<string, number>;
 type DiscoveredMap = Record<string, boolean>;
 
-function isNodeUnlocked(node: GatherNode, resources: ResourcesMap): boolean {
+export function isNodeUnlocked(node: AnyNode, resources: ResourcesMap, unlockedNodes: DiscoveredMap = {}): boolean {
+  if (unlockedNodes[node.id]) return true;
   const req = node.requirement;
   if (req.type === 'none') return true;
   if (req.type === 'resource_amount') {
     return (resources[req.resourceId] ?? 0) >= req.amount;
   }
   return false;
+}
+
+// Record requirements when they are reached; spending resources never removes an unlock.
+export function unlockNodes(resources: ResourcesMap, unlockedNodes: DiscoveredMap): DiscoveredMap {
+  let next = unlockedNodes;
+  for (const node of ALL_NODES) {
+    if (!next[node.id] && isNodeUnlocked(node, resources)) {
+      next = { ...next, [node.id]: true };
+    }
+  }
+  return next;
 }
 
 /**
@@ -22,14 +34,15 @@ function isNodeUnlocked(node: GatherNode, resources: ResourcesMap): boolean {
 export function visibleNodes(
   nodes: GatherNode[],
   resources: ResourcesMap,
-  discovered: DiscoveredMap
+  discovered: DiscoveredMap,
+  unlockedNodes: DiscoveredMap = {}
 ): GatherNode[] {
   // Keep stable ordering as defined in config (important)
-  const unlocked = nodes.filter((n) => isNodeUnlocked(n, resources));
+  const unlocked = nodes.filter((n) => isNodeUnlocked(n, resources, unlockedNodes));
 
   // Find the first "eligible locked" node
   const nextLocked = nodes.find((n) => {
-    if (isNodeUnlocked(n, resources)) return false; // not locked
+    if (isNodeUnlocked(n, resources, unlockedNodes)) return false; // not locked
 
     const req = n.requirement;
     if (req.type === 'none') return false;

@@ -1,7 +1,7 @@
 import type { Effect } from "@/game/effects";
-import type { ResourceId } from "@/game/resources";
+import type { ResourceId, MaterialResourceId } from "@/game/resources";
 
-export type Cost = Partial<Record<ResourceId, number>>;
+export type Cost = Partial<Record<MaterialResourceId, number>>;
 
 export type UpgradeDef = {
   id: string;
@@ -157,6 +157,22 @@ export const UPGRADES: UpgradeDef[] = [
     ],
   },
 
+  {
+    id: "mine.speed.plus1",
+    name: "Stick Pickaxe Upgrade",
+    description: "Mining speed +1",
+    cost: { gold: 25 },
+    category: 'mining',
+    material: 'pebbles',
+    effects: [
+      {
+        id: "eff.mine.speed.plus1",
+        name: "Mining Speed +1",
+        source: "upgrade",
+        modifiers: [{ stat: "prod.pebbles.speed", type: "add", value: 1 }],
+      }
+    ],
+  },
 
 
 

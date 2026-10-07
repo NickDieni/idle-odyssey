@@ -134,7 +134,7 @@ export const FISHING_NODES: FishingNode[] = [
     label: "Fish Tank",
     iconSrc: "/icons/fishtank.png",
     xp: 6,
-    durationSeconds: 4,
+    durationSeconds: 3,
     requirement: { type: "none" },
     rewardAmount: 1,
     // show 4 fish icons at a time like your mock
@@ -142,26 +142,26 @@ export const FISHING_NODES: FishingNode[] = [
 
     fishTable: [
       {
-        resourceId: "worm",
-        chance: 50,
+        sellResourceId: "worm",
+        chance: 55,
         iconSrc: "/icons/worm.png",
         label: "Worm",
       },
       {
-        resourceId: "minifish",
+        sellResourceId: "minifish",
         chance: 30,
         iconSrc: "/icons/minifish.png",
         label: "Mini Fish",
       },
       {
-        resourceId: "smallfish",
-        chance: 15,
+        sellResourceId: "smallfish",
+        chance: 14,
         iconSrc: "/icons/smallfish.png",
         label: "Small Fish",
       },
       {
-        resourceId: "goldfish",
-        chance: 5,
+        sellResourceId: "goldfish",
+        chance: 1,
         iconSrc: "/icons/goldfish.png",
         label: "Goldfish",
       },
@@ -172,7 +172,7 @@ export const FISHING_NODES: FishingNode[] = [
 // -------------------------
 // ALL NODES
 // -------------------------
-export const ALL_NODES: GatherNode[] = [
+export const ALL_NODES: AnyNode[] = [
   ...WOODCUTTING_NODES,
   ...MINING_NODES,
   ...FISHING_NODES,
@@ -186,10 +186,13 @@ export const GATHER_NODES = Object.fromEntries(ALL_NODES.map((n) => [n.id, n]));
 // -------------------------
 // Convenience helpers (optional)
 // -------------------------
-export function getNodesByCategory(category: NodeCategory): GatherNode[] {
+export function getNodesByCategory(category: "fishing"): FishingNode[];
+export function getNodesByCategory(category: GatherNode["category"]): GatherNode[];
+export function getNodesByCategory(category: NodeCategory): AnyNode[];
+export function getNodesByCategory(category: NodeCategory): AnyNode[] {
   return ALL_NODES.filter((n) => n.category === category);
 }
 
-export function getNodeById(id: string): GatherNode | undefined {
+export function getNodeById(id: string): AnyNode | undefined {
   return GATHER_NODES[id];
 }

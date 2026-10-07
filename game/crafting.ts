@@ -1,15 +1,15 @@
-import type { ResourceId } from "@/game/resources";
+import type { MaterialResourceId } from "@/game/resources";
 
 export type CraftCost =
-  | { type: "resource"; resourceId: ResourceId; amount: number }
-  | { type: "any_of"; resourceIds: ResourceId[]; amount: number; label: string };
+  | { type: "resource"; resourceId: MaterialResourceId; amount: number }
+  | { type: "any_of"; resourceIds: MaterialResourceId[]; amount: number; label: string };
 
 export type CraftRecipe = {
   id: string;
   skill: "smithing";
   label: string;
   output: {
-    resourceId: ResourceId;
+    resourceId: MaterialResourceId;
     amount: number;
   };
   costs: CraftCost[];

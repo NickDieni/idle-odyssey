@@ -2,7 +2,7 @@
 
 import { UPGRADES, type UpgradeDef } from '@/game/upgrades';
 import { useGameStore } from '@/game/store';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { ResourceId } from '@/game/resources';
 
 type Category = 'woodcutting' | 'mining' | 'fishing' | 'general';
@@ -10,8 +10,8 @@ type Category = 'woodcutting' | 'mining' | 'fishing' | 'general';
 // Define materials for each category
 const CATEGORY_MATERIALS: Record<Category, ResourceId[]> = {
   woodcutting: ['oak', 'birch', 'spruce', 'maple'],
-  mining: ['pebbles', 'stone', 'copper', 'iron'],
-  fishing: ['worm', 'minifish', 'smallfish', 'goldfish'],
+  mining: ['pebbles', 'stone', 'copper', 'tin', 'iron'],
+  fishing: [],
   general: [], // No material subtabs for general
 };
 
@@ -30,6 +30,7 @@ const MATERIAL_LABELS: Record<string, string> = {
   pebbles: 'Pebbles',
   stone: 'Stone',
   copper: 'Copper',
+  tin: 'Tin',
   iron: 'Iron',
   worm: 'Worm',
   minifish: 'Mini Fish',
@@ -77,6 +78,13 @@ function UpgradeCard({ upgrade }: { upgrade: UpgradeDef }) {
 
 export default function StorePage() {
   const [activeCategory, setActiveCategory] = useState<Category>('woodcutting');
+  const [activeMaterialByCategory, setActiveMaterialByCategory] = useState<
+    Partial<Record<Category, ResourceId>>
+  >({
+    woodcutting: CATEGORY_MATERIALS.woodcutting[0],
+    mining: CATEGORY_MATERIALS.mining[0],
+    fishing: CATEGORY_MATERIALS.fishing[0],
+  });
 
   // Group upgrades by category and material
   const upgradesByCategory = useMemo(() => {
@@ -100,24 +108,18 @@ export default function StorePage() {
     return grouped;
   }, []);
 
-  // Get available materials for current category
+  // Get materials for current category (always show all)
   const availableMaterials = useMemo(() => {
-    const materials = CATEGORY_MATERIALS[activeCategory];
     if (activeCategory === 'general') return [];
-    
-    // Filter to only show materials that have upgrades
-    return materials.filter((mat) => 
-      upgradesByCategory[activeCategory][mat]?.length > 0
-    );
-  }, [activeCategory, upgradesByCategory]);
+    return CATEGORY_MATERIALS[activeCategory];
+  }, [activeCategory]);
 
-  // Derive active material from category and available materials
   const activeMaterial = useMemo(() => {
-    if (activeCategory === 'general') {
-      return null;
-    }
-    return availableMaterials.length > 0 ? availableMaterials[0] : null;
-  }, [activeCategory, availableMaterials]);
+    if (activeCategory === 'general') return null;
+    return (
+      activeMaterialByCategory[activeCategory] ?? availableMaterials[0] ?? null
+    );
+  }, [activeCategory, activeMaterialByCategory, availableMaterials]);
 
   // Get upgrades to display
   const displayedUpgrades = useMemo(() => {
@@ -152,7 +154,29 @@ export default function StorePage() {
         ))}
       </div>
 
-      {/* Material Subtabs - Hidden since material is now derived */}
+      {/* Material Subtabs */}
+      {activeCategory !== 'general' && (
+        <div className="flex gap-2 flex-wrap">
+          {availableMaterials.map((mat) => (
+            <button
+              key={mat}
+              onClick={() =>
+                setActiveMaterialByCategory((prev) => ({
+                  ...prev,
+                  [activeCategory]: mat,
+                }))
+              }
+              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                activeMaterial === mat
+                  ? 'bg-slate-700 text-white'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {MATERIAL_LABELS[mat] ?? mat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Upgrades Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

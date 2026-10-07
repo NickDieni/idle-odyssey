@@ -26,6 +26,7 @@ function requirementText(node: GatherNode) {
 export default function GatherNodeCard({ node }: { node: GatherNode }) {
   // Store
   const resources = useGameStore((s) => s.resources);
+  const permanentlyUnlocked = useGameStore((s) => !!s.unlockedNodes[node.id]);
   const getStat = useGameStore((s) => s.getStat);
 
   const gather = useGameStore((s) => s.gather);
@@ -41,12 +42,12 @@ export default function GatherNodeCard({ node }: { node: GatherNode }) {
 
   // Unlock progress (for locked look + progress bar)
   const unlockProgress = useMemo(() => {
-    if (node.requirement.type === "none") return 1;
+    if (permanentlyUnlocked || node.requirement.type === "none") return 1;
     const have = resources[node.requirement.resourceId] ?? 0;
     const need = node.requirement.amount;
     if (need <= 0) return 1;
     return clamp01(have / need);
-  }, [node.requirement, resources]);
+  }, [node.requirement, resources, permanentlyUnlocked]);
 
   const unlocked = unlockProgress >= 1;
 
