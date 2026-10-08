@@ -1,17 +1,21 @@
 import type { AnyNode, GatherNode } from '@/game/types';
 import { ALL_NODES } from '@/game/nodes';
+import { clamp01 } from './format';
+import { isUnlocked } from './unlocks';
 
 type ResourcesMap = Record<string, number>;
 type DiscoveredMap = Record<string, boolean>;
 
+export function getUnlockProgress(node: AnyNode, resources: ResourcesMap, permanentlyUnlocked = false): number {
+  const requirement = node.requirement;
+  if (permanentlyUnlocked || requirement.type === 'none') return 1;
+  if (requirement.amount <= 0) return 1;
+  return clamp01((resources[requirement.resourceId] ?? 0) / requirement.amount);
+}
+
 export function isNodeUnlocked(node: AnyNode, resources: ResourcesMap, unlockedNodes: DiscoveredMap = {}): boolean {
   if (unlockedNodes[node.id]) return true;
-  const req = node.requirement;
-  if (req.type === 'none') return true;
-  if (req.type === 'resource_amount') {
-    return (resources[req.resourceId] ?? 0) >= req.amount;
-  }
-  return false;
+  return isUnlocked(node.requirement, resources);
 }
 
 // Record requirements when they are reached; spending resources never removes an unlock.

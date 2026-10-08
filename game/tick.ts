@@ -5,8 +5,6 @@ import { useGameStore } from '@/game/store';
 
 export default function GamePage() {
   const tick = useGameStore(s => s.tick);
-  const gold = useGameStore(s => s.resources.gold);
-  const goldPerSec = useGameStore(s => s.getStat('prod.gold'));
 
   const last = useRef<number | null>(null);
 

@@ -1,25 +1,20 @@
 import type { Effect, StatKey } from './effects';
 
 export function resolveStat(base: number, stat: StatKey, effects: Effect[]): number {
-  // Gather relevant modifiers, respecting stacks
-  const mods = effects.flatMap(e => {
-    const stacks = Math.max(1, e.stacks ?? 1);
-    return e.modifiers
-      .filter(m => m.stat === stat)
-      .map(m => ({ ...m, stacks }));
-  });
+  let added = 0;
+  let multiplier = 1;
 
-  // Additives first
-  const add = mods
-    .filter(m => m.type === 'add')
-    .reduce((sum, m) => sum + m.value * m.stacks, 0);
+  for (const effect of effects) {
+    const stacks = Math.max(1, effect.stacks ?? 1);
+    for (const modifier of effect.modifiers) {
+      if (modifier.stat !== stat) continue;
+      if (modifier.type === 'add') added += modifier.value * stacks;
+      if (modifier.type === 'mul') multiplier *= Math.pow(modifier.value, stacks);
+    }
+  }
 
-  // Multipliers are multiplied together (2x and 0.8x stack correctly)
-  const mul = mods
-    .filter(m => m.type === 'mul')
-    .reduce((prod, m) => prod * Math.pow(m.value, m.stacks), 1);
-
-  return (base + add) * mul;
+  // Apply additions before multipliers. Legacy "speed" modifiers are ignored.
+  return (base + added) * multiplier;
 }
 
 export function pruneExpiredEffects(effects: Effect[], now: number): Effect[] {

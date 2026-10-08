@@ -1,26 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { clamp01, formatInt } from "@/game/format";
+import type { StatKey } from "@/game/effects";
+import { requirementText } from "@/game/node-display";
+import { getUnlockProgress } from "@/game/progression";
 import { useGameStore } from "@/game/store";
-import { RESOURCES, SELL_RESOURCES } from "@/game/resources";
+import { SELL_RESOURCES } from "@/game/resources";
 import type { FishingNode } from "@/game/types";
-
-// ---------- Helpers ----------
-function clamp01(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
-}
-
-function formatInt(n: number) {
-  return Math.floor(n).toLocaleString();
-}
-
-function requirementText(node: FishingNode) {
-  const req = node.requirement;
-  if (req.type === "none") return "";
-  const name = RESOURCES[req.resourceId]?.name ?? req.resourceId;
-  return `Requires ${name}: ${req.amount.toLocaleString()}`;
-}
 
 // ---------- Component ----------
 export function FishingNodeCard({ node }: { node: FishingNode }) {
@@ -33,20 +20,14 @@ export function FishingNodeCard({ node }: { node: FishingNode }) {
   const isActive = gather.activeNodeId === node.id;
 
   // Unlock progress
-  const unlockProgress = useMemo(() => {
-    if (permanentlyUnlocked || node.requirement.type === "none") return 1;
-    const have = resources[node.requirement.resourceId] ?? 0;
-    const need = node.requirement.amount;
-    if (need <= 0) return 1;
-    return clamp01(have / need);
-  }, [node.requirement, resources, permanentlyUnlocked]);
+  const unlockProgress = getUnlockProgress(node, resources, permanentlyUnlocked);
 
   const unlocked = unlockProgress >= 1;
 
   // Speed / XP display
-  const speedKey = (node.speedStatKey ?? "prod.fishing.speed") as any;
+  const speedKey = (node.speedStatKey ?? "prod.fishing.speed") as StatKey;
   const speedMult = Number(getStat(speedKey) ?? 1);
-  const xpMult = Number(getStat("xp.gain.mult" as any) ?? 1);
+  const xpMult = Number(getStat("xp.gain.mult") ?? 1);
 
   const effectiveDurationSeconds = Math.max(
     0.05,

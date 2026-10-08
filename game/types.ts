@@ -1,7 +1,6 @@
-// src/game/types.ts
 import type { ResourceId, SellResourceId } from "@/game/resources";
 import type { Cost } from "@/game/upgrades";
-import { UnlockRequirement } from "./unlocks";
+import type { UnlockRequirement } from "./unlocks";
 
 export type NodeCategory = "woodcutting" | "mining" | "fishing";
 
@@ -13,45 +12,29 @@ export type FishEntry = {
   rewardAmount?: number;
 };
 
-export type FishingNode = {
+type NodeBase = {
   id: string;
-  category: "fishing";
-
   actionVerb: string;
   label: string;
   iconSrc?: string;
-
   xp: number;
   durationSeconds: number;
-
   requirement: UnlockRequirement;
   rewardAmount: number;
-
-  fishTable: FishEntry[];
-  visibleFishCount?: number; // default 4
-
-  // optional stat overrides
   speedStatKey?: string;
 };
 
-export type GatherNode = {
-  id: string;
+export type FishingNode = NodeBase & {
+  category: "fishing";
+  fishTable: FishEntry[];
+  visibleFishCount?: number; // default 4
+};
+
+export type GatherNode = NodeBase & {
   category: "woodcutting" | "mining";
-
-  actionVerb: string;
-  label: string;
-  iconSrc?: string;
-
   resourceId: ResourceId;
-  rewardAmount: number;
-  xp: number;
-
-  durationSeconds: number;
-  requirement: UnlockRequirement;
-
   amountStatKey?: string;
   multStatKey?: string;
-  speedStatKey?: string;
   auto?: {
     upgradeId: string;
     cost: Cost;

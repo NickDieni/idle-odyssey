@@ -38,7 +38,7 @@ const MATERIAL_RESOURCES: Record<MaterialResourceId, ResourceDef> = {
 };
 
 export const SELL_RESOURCES: Record<SellResourceId, SellResourceDef> = {
-   // Fish Resources
+  // Fish Resources
   worm: { id: 'worm', name: 'Worm', decimals: 0, startsDiscovered: false },
   minifish: { id: 'minifish', name: 'Mini Fish', decimals: 0, startsDiscovered: false },
   smallfish: { id: 'smallfish', name: 'Small Fish', decimals: 0, startsDiscovered: false },

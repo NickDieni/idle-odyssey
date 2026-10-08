@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useGameStore } from "@/game/store";
 import { getNodesByCategory } from "@/game/nodes";
-import type { FishingNode } from "@/game/types";
 import { FishingNodeCard } from "@/components/FishingNodeCard";
+
+const fishingNodes = getNodesByCategory("fishing");
 
 export default function FishingPage() {
   const tick = useGameStore((s) => s.tick);
 
-  const fishingNodes = useMemo(() => {
-    return getNodesByCategory("fishing").filter(
-      (n): n is FishingNode => n.category === "fishing"
-    );
-  }, []);
+
 
   useEffect(() => {
     let last = performance.now();

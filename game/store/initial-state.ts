@@ -1,11 +1,6 @@
+import { PRODUCTION_RESOURCES } from "../effects";
 import { RESOURCES, type ResourceId } from "../resources";
 import type { BaseStats, DiscoveredMap, GameState, ResourceAmounts } from "./types";
-
-const productionResources = [
-  "oak", "birch", "spruce", "maple",
-  "pebbles", "stone", "copper", "tin", "iron",
-  "worm", "minifish", "smallfish", "goldfish",
-];
 
 type InitialState = Pick<GameState,
   "resources" | "discovered" | "unlockedNodes" | "baseStats" | "effects" |
@@ -14,7 +9,7 @@ type InitialState = Pick<GameState,
 
 export function createInitialState(): InitialState {
   const resourceIds = Object.keys(RESOURCES) as ResourceId[];
-  const productionStats = Object.fromEntries(productionResources.flatMap((id) => [
+  const productionStats = Object.fromEntries(PRODUCTION_RESOURCES.flatMap((id) => [
     [`prod.${id}.amount`, 0],
     [`prod.${id}.mult`, 1],
     [`prod.${id}.speed`, 1],

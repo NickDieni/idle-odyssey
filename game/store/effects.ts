@@ -8,30 +8,30 @@ export const createEffectSlice: GameSlice<"getStat" | "setBaseStat" | "addEffect
   },
 
   setBaseStat: (stat, value) =>
-    set((s) => ({ baseStats: { ...s.baseStats, [stat]: value } })),
+    set((state) => ({ baseStats: { ...state.baseStats, [stat]: value } })),
 
   addEffect: (effect) =>
-    set((s) => {
-      const idx = s.effects.findIndex((e) => e.id === effect.id);
-      if (idx === -1) {
+    set((state) => {
+      const index = state.effects.findIndex((e) => e.id === effect.id);
+      if (index === -1) {
         return {
-          effects: [...s.effects, { ...effect, stacks: effect.stacks ?? 1 }],
+          effects: [...state.effects, { ...effect, stacks: effect.stacks ?? 1 }],
         };
       }
 
-      const cur = s.effects[idx];
-      const max = cur.maxStacks ?? effect.maxStacks;
+      const current = state.effects[index];
+      const maxStacks = current.maxStacks ?? effect.maxStacks;
       const stacks = Math.min(
-        (cur.stacks ?? 1) + (effect.stacks ?? 1),
-        max ?? Infinity,
+        (current.stacks ?? 1) + (effect.stacks ?? 1),
+        maxStacks ?? Infinity,
       );
 
-      const copy = s.effects.slice();
-      copy[idx] = { ...cur, ...effect, stacks };
+      const copy = state.effects.slice();
+      copy[index] = { ...current, ...effect, stacks };
       return { effects: copy };
     }),
 
   removeEffect: (effectId) =>
-    set((s) => ({ effects: s.effects.filter((e) => e.id !== effectId) })),
+    set((state) => ({ effects: state.effects.filter((e) => e.id !== effectId) })),
 
 });

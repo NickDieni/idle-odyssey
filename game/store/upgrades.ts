@@ -5,10 +5,10 @@ import type { GameSlice } from "./types";
 export const createUpgradeSlice: GameSlice<"isAutoAvailable" | "toggleAuto" | "buyUpgrade"> = (set, get) => ({
   isAutoAvailable: (nodeId) => !!get().autoUnlocked[nodeId],
   toggleAuto: (nodeId) =>
-    set((s) => {
-      if (!s.autoUnlocked[nodeId]) return s;
+    set((state) => {
+      if (!state.autoUnlocked[nodeId]) return state;
       return {
-        autoEnabled: { ...s.autoEnabled, [nodeId]: !s.autoEnabled[nodeId] },
+        autoEnabled: { ...state.autoEnabled, [nodeId]: !state.autoEnabled[nodeId] },
       };
     }),
 
@@ -20,20 +20,20 @@ export const createUpgradeSlice: GameSlice<"isAutoAvailable" | "toggleAuto" | "b
     if (state.ownedUpgrades[upgradeId]) return false;
     if (!canAfford(state.resources, def.cost)) return false;
 
-    set((s) => {
-      const nextResources = payCost(s.resources, def.cost);
+    set((state) => {
+      const nextResources = payCost(state.resources, def.cost);
       const nextEffects = def.effects
-        ? [...s.effects, ...def.effects]
-        : s.effects;
+        ? [...state.effects, ...def.effects]
+        : state.effects;
 
       const nextAutoUnlocked = def.unlocks?.autoNodeId
-        ? { ...s.autoUnlocked, [def.unlocks.autoNodeId]: true }
-        : s.autoUnlocked;
+        ? { ...state.autoUnlocked, [def.unlocks.autoNodeId]: true }
+        : state.autoUnlocked;
 
       return {
         resources: nextResources,
         effects: nextEffects,
-        ownedUpgrades: { ...s.ownedUpgrades, [upgradeId]: true },
+        ownedUpgrades: { ...state.ownedUpgrades, [upgradeId]: true },
         autoUnlocked: nextAutoUnlocked,
       };
     });

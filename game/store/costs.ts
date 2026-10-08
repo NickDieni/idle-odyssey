@@ -17,13 +17,15 @@ export function payCost(resources: ResourceAmounts, cost: Cost): ResourceAmounts
   return next;
 }
 
-export function canPayCraftCost(resources: ResourceAmounts, cost: CraftCost): boolean {
+export function getCraftCostAmount(resources: ResourceAmounts, cost: CraftCost): number {
   if (cost.type === "resource") {
-    return (resources[cost.resourceId] ?? 0) >= cost.amount;
+    return resources[cost.resourceId] ?? 0;
   }
+  return cost.resourceIds.reduce((sum, id) => sum + (resources[id] ?? 0), 0);
+}
 
-  const total = cost.resourceIds.reduce((sum, id) => sum + (resources[id] ?? 0), 0);
-  return total >= cost.amount;
+export function canPayCraftCost(resources: ResourceAmounts, cost: CraftCost): boolean {
+  return getCraftCostAmount(resources, cost) >= cost.amount;
 }
 
 export function payCraftCost(resources: ResourceAmounts, cost: CraftCost): ResourceAmounts {

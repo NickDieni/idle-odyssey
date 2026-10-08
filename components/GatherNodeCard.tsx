@@ -1,26 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { clamp01, formatInt } from "@/game/format";
+import type { StatKey } from "@/game/effects";
+import { requirementText } from "@/game/node-display";
+import { getUnlockProgress } from "@/game/progression";
 import { useGameStore } from "@/game/store";
-import { RESOURCES } from "@/game/resources";
+import { canAfford } from "@/game/store/costs";
+import { RESOURCES, type ResourceId } from "@/game/resources";
 import type { GatherNode } from "@/game/types";
-
-// ---------- Helpers ----------
-function clamp01(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
-}
-
-function formatInt(n: number) {
-  return Math.floor(n).toLocaleString();
-}
-
-function requirementText(node: GatherNode) {
-  const req = node.requirement;
-  if (req.type === "none") return "";
-  const name = RESOURCES[req.resourceId]?.name ?? req.resourceId;
-  return `Requires ${name}: ${req.amount.toLocaleString()}`;
-}
 
 // ---------- Component ----------
 export default function GatherNodeCard({ node }: { node: GatherNode }) {
@@ -32,7 +19,7 @@ export default function GatherNodeCard({ node }: { node: GatherNode }) {
   const gather = useGameStore((s) => s.gather);
   const setActiveNodeId = useGameStore((s) => s.setActiveNodeId);
 
-  // Auto (optional UI kept from your version)
+  // Automatic gathering controls
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
   const isAutoAvailable = useGameStore((s) => s.isAutoAvailable(node.id));
   const autoEnabled = useGameStore((s) => !!s.autoEnabled[node.id]);
@@ -41,26 +28,20 @@ export default function GatherNodeCard({ node }: { node: GatherNode }) {
   const isActive = gather.activeNodeId === node.id;
 
   // Unlock progress (for locked look + progress bar)
-  const unlockProgress = useMemo(() => {
-    if (permanentlyUnlocked || node.requirement.type === "none") return 1;
-    const have = resources[node.requirement.resourceId] ?? 0;
-    const need = node.requirement.amount;
-    if (need <= 0) return 1;
-    return clamp01(have / need);
-  }, [node.requirement, resources, permanentlyUnlocked]);
+  const unlockProgress = getUnlockProgress(node, resources, permanentlyUnlocked);
 
   const unlocked = unlockProgress >= 1;
 
   // Stat keys (defaults derived from resourceId)
-  const amountKey = (node.amountStatKey ?? `prod.${node.resourceId}.amount`) as any;
-  const multKey = (node.multStatKey ?? `prod.${node.resourceId}.mult`) as any;
-  const speedKey = (node.speedStatKey ?? `prod.${node.resourceId}.speed`) as any;
+  const amountKey = (node.amountStatKey ?? `prod.${node.resourceId}.amount`) as StatKey;
+  const multKey = (node.multStatKey ?? `prod.${node.resourceId}.mult`) as StatKey;
+  const speedKey = (node.speedStatKey ?? `prod.${node.resourceId}.speed`) as StatKey;
 
   // Effects-aware values (display only; store uses same logic for actual rewards)
   const amountAdd = Number(getStat(amountKey) ?? 0);
   const amountMult = Number(getStat(multKey) ?? 1);
   const speedMult = Number(getStat(speedKey) ?? 1);
-  const xpMult = Number(getStat("xp.gain.mult" as any) ?? 1);
+  const xpMult = Number(getStat("xp.gain.mult") ?? 1);
 
   const effectiveReward = Math.max(0, (node.rewardAmount + amountAdd) * amountMult);
   const effectiveXp = Math.max(0, node.xp * xpMult);
@@ -98,12 +79,12 @@ export default function GatherNodeCard({ node }: { node: GatherNode }) {
   const showAutoToggle = !!node.auto && isAutoAvailable;
 
   const canAffordAuto =
-    node.auto ? Object.entries(node.auto.cost).every(([rid, amt]) => (resources[rid] ?? 0) >= (amt ?? 0)) : false;
+    node.auto ? canAfford(resources, node.auto.cost) : false;
 
   const autoCostText =
     node.auto
       ? Object.entries(node.auto.cost)
-          .map(([rid, amt]) => `${(amt ?? 0).toLocaleString()} ${RESOURCES[rid as any]?.name ?? rid}`)
+          .map(([rid, amt]) => `${(amt ?? 0).toLocaleString()} ${RESOURCES[rid as ResourceId]?.name ?? rid}`)
           .join(", ")
       : "";
 

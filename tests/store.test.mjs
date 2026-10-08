@@ -37,6 +37,7 @@ const { useGameStore: store } = load(path.join(root, "game/store.ts"));
 const { RESOURCES, SELL_RESOURCES } = load(path.join(root, "game/resources.ts"));
 const { visibleNodes, isNodeUnlocked } = load(path.join(root, "game/progression.ts"));
 const { WOODCUTTING_NODES } = load(path.join(root, "game/nodes.ts"));
+const { UPGRADES } = load(path.join(root, "game/upgrades.ts"));
 beforeEach(() => store.setState(store.getInitialState(), true));
 
 test("reaching a requirement permanently unlocks a tree before selection or selling", (t) => {
@@ -107,11 +108,46 @@ test("crafting pays mixed costs and discovers the output", () => {
 
 test("upgrades pay costs, apply effects, and cannot be bought twice", () => {
   store.getState().addResource("gold", 25);
-  assert.equal(store.getState().buyUpgrade("wood.amount.plus1"), true);
+  assert.equal(store.getState().buyUpgrade("wood.oak.amount.plus1"), true);
   assert.equal(store.getState().resources.gold, 0);
   assert.equal(store.getState().getStat("prod.oak.amount"), 1);
-  assert.equal(store.getState().buyUpgrade("wood.amount.plus1"), false);
+  assert.equal(store.getState().buyUpgrade("wood.oak.amount.plus1"), false);
 });
+
+test("upgrade IDs and effect IDs are unique across materials", () => {
+  const ids = UPGRADES.map((upgrade) => upgrade.id);
+  const effectIds = UPGRADES.flatMap((upgrade) => (upgrade.effects ?? []).map((effect) => effect.id));
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(new Set(effectIds).size, effectIds.length);
+});
+
+for (const material of ["oak", "birch", "spruce", "maple"]) {
+  test(`${material} upgrades affect only that material and leave the others purchasable`, () => {
+    store.getState().setResource("gold", 400);
+    store.getState().setResource(material, 25);
+    const amountId = `wood.${material}.amount.plus1`;
+    const speedId = `wood.${material}.speed.x2`;
+    assert.equal(store.getState().buyUpgrade(amountId), true);
+    assert.equal(store.getState().buyUpgrade(speedId), true);
+    assert.equal(store.getState().resources.gold, 300);
+    assert.equal(store.getState().resources[material], 0);
+    for (const other of ["oak", "birch", "spruce", "maple"]) {
+      assert.equal(store.getState().getStat(`prod.${other}.amount`), other === material ? 1 : 0);
+      assert.equal(store.getState().getStat(`prod.${other}.speed`), other === material ? 2 : 1);
+      if (other === material) continue;
+      assert.equal(store.getState().ownedUpgrades[`wood.${other}.amount.plus1`], undefined);
+      assert.equal(store.getState().ownedUpgrades[`wood.${other}.speed.x2`], undefined);
+    }
+    const next = material === "oak" ? "birch" : "oak";
+    store.getState().setResource(next, 25);
+    assert.equal(store.getState().buyUpgrade(`wood.${next}.amount.plus1`), true);
+    assert.equal(store.getState().buyUpgrade(`wood.${next}.speed.x2`), true);
+    assert.equal(store.getState().getStat(`prod.${next}.amount`), 1);
+    assert.equal(store.getState().getStat(`prod.${next}.speed`), 2);
+    assert.equal(store.getState().buyUpgrade(amountId), false);
+    assert.equal(store.getState().buyUpgrade(speedId), false);
+  });
+}
 
 test("gathering catches up, grants XP, and retains partial progress", (t) => {
   t.mock.method(Date, "now", () => 10000);
@@ -148,4 +184,55 @@ test("locked nodes grant nothing and invalid nodes stop safely", (t) => {
   store.getState().setActiveNodeId("missing");
   store.getState().tick(0);
   assert.equal(store.getState().gather.activeNodeId, null);
+});
+
+
+test("effects apply additions before stacked multipliers and expire at their deadline", (t) => {
+  t.mock.method(Date, "now", () => 10000);
+  store.getState().setBaseStat("prod.oak.amount", 2);
+  store.getState().addEffect({
+    id: "temporary-multiplier", name: "Multiplier", expiresAt: 11000,
+    modifiers: [{ stat: "prod.oak.amount", type: "mul", value: 2 }],
+    maxStacks: 2,
+  });
+  store.getState().addEffect({
+    id: "addition", name: "Addition",
+    modifiers: [{ stat: "prod.oak.amount", type: "add", value: 3 }],
+  });
+  for (let i = 0; i < 3; i++) {
+    store.getState().addEffect({
+      id: "temporary-multiplier", name: "Multiplier", expiresAt: 11000,
+      modifiers: [{ stat: "prod.oak.amount", type: "mul", value: 2 }],
+    });
+  }
+  assert.equal(store.getState().getStat("prod.oak.amount"), 20);
+  assert.equal(store.getState().getStat("prod.birch.amount"), 0);
+  t.mock.method(Date, "now", () => 11000);
+  store.getState().tick(0);
+  assert.equal(store.getState().getStat("prod.oak.amount"), 5);
+});
+
+test("crafting spends interchangeable ingredients in recipe order and rejects unknown recipes", () => {
+  store.getState().setResource("oak", 0.5);
+  store.getState().setResource("birch", 2);
+  store.getState().setResource("copper", 1);
+  store.getState().setResource("tin", 1);
+  assert.equal(store.getState().canCraftRecipe("missing"), false);
+  assert.equal(store.getState().craftRecipe("missing"), false);
+  assert.equal(store.getState().craftRecipe("smithing.bronze_bar"), true);
+  assert.equal(store.getState().resources.oak, 0);
+  assert.equal(store.getState().resources.birch, 1.5);
+  assert.equal(store.getState().resources.bronze_bar, 1);
+  const inventory = store.getState().resources;
+  assert.equal(store.getState().craftRecipe("smithing.bronze_bar"), false);
+  assert.equal(store.getState().resources, inventory);
+});
+
+test("unlock progress handles partial requirements and permanent unlocks", () => {
+  const { getUnlockProgress } = load(path.join(root, "game/progression.ts"));
+  const birch = WOODCUTTING_NODES[1];
+  assert.equal(getUnlockProgress(birch, { oak: 25 }), 0.5);
+  assert.equal(getUnlockProgress(birch, { oak: 100 }), 1);
+  assert.equal(getUnlockProgress(birch, { oak: -1 }), 0);
+  assert.equal(getUnlockProgress(birch, { oak: 0 }, true), 1);
 });

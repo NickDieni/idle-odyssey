@@ -1,14 +1,10 @@
+import { clamp01 } from "../format";
 import type { StatKey } from "../effects";
 import { pruneExpiredEffects, resolveStat } from "../resolve";
 import { GATHER_NODES } from "../nodes";
 import { rollFish } from "../fishing";
 import { isNodeUnlocked, unlockNodes } from "../progression";
 import type { GameSlice } from "./types";
-
-function clamp01(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
-}
 
 export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set) => ({
   setActiveNodeId: (id) =>
@@ -26,12 +22,12 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
 
   // Use wall-clock time so gathering also catches up after time away.
   tick: () =>
-    set((s) => {
+    set((state) => {
       const now = Date.now();
-      const effects = pruneExpiredEffects(s.effects, now);
+      const effects = pruneExpiredEffects(state.effects, now);
 
       // ----- Background gathering engine -----
-      const activeId = s.gather.activeNodeId;
+      const activeId = state.gather.activeNodeId;
       if (!activeId) {
         return { effects };
       }
@@ -49,16 +45,16 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
         };
       }
 
-      // If locked, stop (or you can keep selected but not running)
-      if (!isNodeUnlocked(node, s.resources, s.unlockedNodes)) {
-          return {
-            effects,
-            gather: { ...s.gather, gatherProgress01: 0, gatherLastTickAt: now },
-          };
+      // Keep locked nodes selected, but reset their progress.
+      if (!isNodeUnlocked(node, state.resources, state.unlockedNodes)) {
+        return {
+          effects,
+          gather: { ...state.gather, gatherProgress01: 0, gatherLastTickAt: now },
+        };
       }
 
       // Snapshot last tick time; if null, initialize
-      const last = s.gather.gatherLastTickAt ?? now;
+      const last = state.gather.gatherLastTickAt ?? now;
       const elapsedMs = Math.max(0, now - last);
 
       // Resolve speed stat
@@ -70,13 +66,13 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
           : `prod.${node.resourceId}.speed`)) as StatKey;
 
       const speedMult = resolveStat(
-        s.baseStats[speedKey] ?? 1,
+        state.baseStats[speedKey] ?? 1,
         speedKey,
         effects,
       );
 
       const xpMult = resolveStat(
-        s.baseStats["xp.gain.mult"] ?? 1,
+        state.baseStats["xp.gain.mult"] ?? 1,
         "xp.gain.mult",
         effects,
       );
@@ -89,21 +85,19 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
       );
 
       // Current progress (0..durationMs) + elapsed
-      const currentProgressMs = s.gather.gatherProgress01 * durationMs;
+      const currentProgressMs = state.gather.gatherProgress01 * durationMs;
       const totalMs = currentProgressMs + elapsedMs;
 
       const completed = Math.floor(totalMs / durationMs);
       const remainderMs = totalMs - completed * durationMs;
       const nextProgress01 = clamp01(remainderMs / durationMs);
 
-      const hasAward = completed > 0;
-
       // No completions: just advance timing/progress
-      if (!hasAward) {
+      if (!(completed > 0)) {
         return {
           effects,
           gather: {
-            activeNodeId: s.gather.activeNodeId,
+            activeNodeId: state.gather.activeNodeId,
             gatherLastTickAt: now,
             gatherProgress01: nextProgress01,
           },
@@ -111,8 +105,8 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
       }
 
       // From here: we have 1+ completions to award
-      let nextResources = s.resources;
-      let nextDiscovered = s.discovered;
+      let nextResources = state.resources;
+      let nextDiscovered = state.discovered;
 
       // Always grant XP for completions
       nextResources = {
@@ -137,19 +131,19 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
           }
         }
       } else {
-        // Woodcutting/mining: preserve your existing amount/mult logic
+        // Woodcutting and mining award the configured resource.
         const amountKey = (node.amountStatKey ??
           `prod.${node.resourceId}.amount`) as StatKey;
         const multKey = (node.multStatKey ??
           `prod.${node.resourceId}.mult`) as StatKey;
 
         const amountAdd = resolveStat(
-          s.baseStats[amountKey] ?? 0,
+          state.baseStats[amountKey] ?? 0,
           amountKey,
           effects,
         );
         const amountMult = resolveStat(
-          s.baseStats[multKey] ?? 1,
+          state.baseStats[multKey] ?? 1,
           multKey,
           effects,
         );
@@ -170,10 +164,10 @@ export const createGatheringSlice: GameSlice<"setActiveNodeId" | "tick"> = (set)
       return {
         effects,
         resources: nextResources,
-        unlockedNodes: unlockNodes(nextResources, s.unlockedNodes),
+        unlockedNodes: unlockNodes(nextResources, state.unlockedNodes),
         discovered: nextDiscovered,
         gather: {
-          activeNodeId: s.gather.activeNodeId,
+          activeNodeId: state.gather.activeNodeId,
           gatherLastTickAt: now,
           gatherProgress01: nextProgress01,
         },

@@ -120,7 +120,7 @@ export const MINING_NODES: GatherNode[] = [
     label: "Iron Vein",
     resourceId: "iron",
     iconSrc: "/icons/iron.png",
-    xp: 8,
+    xp: 90,
     durationSeconds: 3,
     rewardAmount: 1,
     requirement: { type: "resource_amount", resourceId: "tin", amount: 150 },
@@ -140,6 +140,44 @@ export const FISHING_NODES: FishingNode[] = [
     // show 4 fish icons at a time like your mock
     visibleFishCount: 4,
 
+    fishTable: [
+      {
+        sellResourceId: "worm",
+        chance: 55,
+        iconSrc: "/icons/worm.png",
+        label: "Worm",
+      },
+      {
+        sellResourceId: "minifish",
+        chance: 30,
+        iconSrc: "/icons/minifish.png",
+        label: "Mini Fish",
+      },
+      {
+        sellResourceId: "smallfish",
+        chance: 14,
+        iconSrc: "/icons/smallfish.png",
+        label: "Small Fish",
+      },
+      {
+        sellResourceId: "goldfish",
+        chance: 1,
+        iconSrc: "/icons/goldfish.png",
+        label: "Goldfish",
+      },
+    ],
+  },
+  {
+    id: "fish.puddle",
+    category: "fishing",
+    actionVerb: "Fish",
+    label: "Puddle",
+    iconSrc: "/icons/puddle.png",
+    xp: 20,
+    durationSeconds: 2,
+    requirement: { type: "resource_amount", resourceId: "goldfish", amount: 5 },
+    rewardAmount: 1,
+    visibleFishCount: 4,
     fishTable: [
       {
         sellResourceId: "worm",

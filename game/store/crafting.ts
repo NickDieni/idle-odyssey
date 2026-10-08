@@ -16,12 +16,10 @@ export const createCraftingSlice: GameSlice<"canCraftRecipe" | "craftRecipe"> = 
     const recipe = CRAFT_RECIPES[recipeId];
     if (!recipe) return false;
 
-    const resources = get().resources;
-    const canCraft = recipe.costs.every((cost) => canPayCraftCost(resources, cost));
-    if (!canCraft) return false;
+    if (!get().canCraftRecipe(recipeId)) return false;
 
-    set((s) => {
-      let nextResources = { ...s.resources };
+    set((state) => {
+      let nextResources = { ...state.resources };
 
       for (const cost of recipe.costs) {
         nextResources = payCraftCost(nextResources, cost);
@@ -32,9 +30,9 @@ export const createCraftingSlice: GameSlice<"canCraftRecipe" | "craftRecipe"> = 
 
       return {
         resources: nextResources,
-        unlockedNodes: unlockNodes(nextResources, s.unlockedNodes),
+        unlockedNodes: unlockNodes(nextResources, state.unlockedNodes),
         discovered: {
-          ...s.discovered,
+          ...state.discovered,
           [recipe.output.resourceId]: true,
         },
       };

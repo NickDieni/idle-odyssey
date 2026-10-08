@@ -1,5 +1,6 @@
 "use client";
 
+import { getCraftCostAmount } from "@/game/store/costs";
 import { SMITHING_RECIPES } from "@/game/crafting";
 import { RESOURCES } from "@/game/resources";
 import { useGameStore } from "@/game/store";
@@ -44,27 +45,16 @@ export default function CraftingPage() {
 
               <div className="mt-3 space-y-1 text-sm text-slate-300">
                 {recipe.costs.map((cost, idx) => {
-                  if (cost.type === "resource") {
-                    const have = Math.floor(resources[cost.resourceId] ?? 0);
-                    const need = cost.amount;
-                    const ok = have >= need;
-
-                    return (
-                      <div key={`${recipe.id}-cost-${idx}`} className={ok ? "text-emerald-300" : "text-rose-300"}>
-                        {RESOURCES[cost.resourceId].name}: {have}/{need}
-                      </div>
-                    );
-                  }
-
-                  const have = Math.floor(
-                    cost.resourceIds.reduce((sum, id) => sum + (resources[id] ?? 0), 0),
-                  );
+                  const label = cost.type === "resource"
+                    ? RESOURCES[cost.resourceId].name
+                    : cost.label;
+                  const have = Math.floor(getCraftCostAmount(resources, cost));
                   const need = cost.amount;
                   const ok = have >= need;
 
                   return (
                     <div key={`${recipe.id}-cost-${idx}`} className={ok ? "text-emerald-300" : "text-rose-300"}>
-                      {cost.label}: {have}/{need}
+                      {label}: {have}/{need}
                     </div>
                   );
                 })}

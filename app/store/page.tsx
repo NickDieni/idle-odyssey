@@ -2,7 +2,8 @@
 
 import { UPGRADES, type UpgradeDef } from '@/game/upgrades';
 import { useGameStore } from '@/game/store';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { canAfford } from '@/game/store/costs';
 import type { ResourceId } from '@/game/resources';
 
 type Category = 'woodcutting' | 'mining' | 'fishing' | 'general';
@@ -44,9 +45,7 @@ function UpgradeCard({ upgrade }: { upgrade: UpgradeDef }) {
   const buy = useGameStore((s) => s.buyUpgrade);
 
   const isOwned = !!owned[upgrade.id];
-  const canBuy = Object.entries(upgrade.cost).every(
-    ([rid, amt]) => (resources[rid] ?? 0) >= (amt ?? 0)
-  );
+  const canBuy = canAfford(resources, upgrade.cost);
 
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
@@ -86,51 +85,15 @@ export default function StorePage() {
     fishing: CATEGORY_MATERIALS.fishing[0],
   });
 
-  // Group upgrades by category and material
-  const upgradesByCategory = useMemo(() => {
-    const grouped: Record<Category, Record<string, UpgradeDef[]>> = {
-      woodcutting: {},
-      mining: {},
-      fishing: {},
-      general: {},
-    };
+  const availableMaterials = CATEGORY_MATERIALS[activeCategory];
+  const activeMaterial = activeCategory === 'general'
+    ? null
+    : activeMaterialByCategory[activeCategory] ?? availableMaterials[0] ?? null;
 
-    UPGRADES.forEach((upgrade) => {
-      const category = upgrade.category;
-      const material = upgrade.material || 'general';
-      
-      if (!grouped[category][material]) {
-        grouped[category][material] = [];
-      }
-      grouped[category][material].push(upgrade);
-    });
-
-    return grouped;
-  }, []);
-
-  // Get materials for current category (always show all)
-  const availableMaterials = useMemo(() => {
-    if (activeCategory === 'general') return [];
-    return CATEGORY_MATERIALS[activeCategory];
-  }, [activeCategory]);
-
-  const activeMaterial = useMemo(() => {
-    if (activeCategory === 'general') return null;
-    return (
-      activeMaterialByCategory[activeCategory] ?? availableMaterials[0] ?? null
-    );
-  }, [activeCategory, activeMaterialByCategory, availableMaterials]);
-
-  // Get upgrades to display
-  const displayedUpgrades = useMemo(() => {
-    if (activeCategory === 'general') {
-      return upgradesByCategory.general.general || [];
-    }
-    if (activeMaterial) {
-      return upgradesByCategory[activeCategory][activeMaterial] || [];
-    }
-    return [];
-  }, [activeCategory, activeMaterial, upgradesByCategory]);
+  const displayedUpgrades = UPGRADES.filter((upgrade) =>
+    upgrade.category === activeCategory &&
+    (upgrade.material || 'general') === (activeCategory === 'general' ? 'general' : activeMaterial)
+  );
 
   return (
     <div className="space-y-6">
@@ -142,11 +105,7 @@ export default function StorePage() {
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeCategory === cat
-                ? 'text-gray-400 hover:text-gray-300'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
+            className="px-4 py-2 font-medium transition-colors text-gray-400 hover:text-gray-300"
             style={activeCategory === cat ? { color: '#c084fc' } : undefined}
           >
             {CATEGORY_LABELS[cat]}

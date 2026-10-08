@@ -5,20 +5,23 @@ import type { GameSlice } from "./types";
 export const createResourceSlice: GameSlice<"isDiscovered" | "addResource" | "setResource" | "getSellValue" | "sellResource" | "discoverResource"> = (set, get) => ({
   isDiscovered: (id) => !!get().discovered[id],
   addResource: (id, amount) =>
-    set((s) => ({
-      resources: { ...s.resources, [id]: s.resources[id] + amount },
-      unlockedNodes: unlockNodes({ ...s.resources, [id]: s.resources[id] + amount }, s.unlockedNodes),
-      discovered:
-        amount > 0 && !s.discovered[id]
-          ? { ...s.discovered, [id]: true }
-          : s.discovered,
-    })),
+    set((state) => {
+      const resources = { ...state.resources, [id]: state.resources[id] + amount };
+      return {
+        resources,
+        unlockedNodes: unlockNodes(resources, state.unlockedNodes),
+        discovered:
+          amount > 0 && !state.discovered[id]
+            ? { ...state.discovered, [id]: true }
+            : state.discovered,
+      };
+    }),
 
   setResource: (id, amount) =>
-    set((s) => ({
-      resources: { ...s.resources, [id]: amount },
-      unlockedNodes: unlockNodes({ ...s.resources, [id]: amount }, s.unlockedNodes),
-    })),
+    set((state) => {
+      const resources = { ...state.resources, [id]: amount };
+      return { resources, unlockedNodes: unlockNodes(resources, state.unlockedNodes) };
+    }),
 
   getSellValue: (id, amount) => {
     const price = SELL_PRICES[id];
@@ -33,15 +36,15 @@ export const createResourceSlice: GameSlice<"isDiscovered" | "addResource" | "se
     const gain = get().getSellValue(id, amount);
     if (gain <= 0) return 0;
 
-    set((s) => {
-      const owned = s.resources[id] ?? 0;
+    set((state) => {
+      const owned = state.resources[id] ?? 0;
       const qty = Math.min(owned, amount ?? owned);
 
       return {
         resources: {
-          ...s.resources,
+          ...state.resources,
           [id]: owned - qty,
-          gold: s.resources.gold + gain,
+          gold: state.resources.gold + gain,
         },
       };
     });
@@ -52,6 +55,6 @@ export const createResourceSlice: GameSlice<"isDiscovered" | "addResource" | "se
   /* ---------- Discovery ---------- */
 
   discoverResource: (id) =>
-    set((s) => ({ discovered: { ...s.discovered, [id]: true } })),
+    set((state) => ({ discovered: { ...state.discovered, [id]: true } })),
 
 });

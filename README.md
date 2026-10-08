@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Idle Odyssey
 
-## Getting Started
+A Next.js idle game. The UI reads game state from a Zustand store; game rules and content live in `game/`.
 
-First, run the development server:
+## Run locally
 
-```bash
+From this directory:
+
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. The store also uses `zustand`, currently installed by the parent workspace's `package.json`. When setting up a fresh checkout, run `npm install` in the parent directory too.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Where to make changes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Change | File |
+| --- | --- |
+| Trees, mines, fish tables, requirements, rewards, and durations | `game/nodes.ts` |
+| Resource names and initial discovery | `game/resources.ts` |
+| Sale prices | `game/selling.ts` |
+| Upgrade prices and effects | `game/upgrades.ts` |
+| Crafting recipes and payment order for interchangeable ingredients | `game/crafting.ts` |
+| Level progression | `game/leveling.ts` |
+| Initial inventory and base stats | `game/store/initial-state.ts` |
+| Gathering, elapsed time, XP, and rewards | `game/store/gathering.ts` |
+| Permanent unlocks and which nodes are visible | `game/progression.ts` |
+| Effect stacking and stat calculations | `game/resolve.ts` |
+| Navigation | `components/Sidebar.tsx` |
+| Page content | `app/<page>/page.tsx` |
 
-## Learn More
+## How the game works
 
-To learn more about Next.js, take a look at the following resources:
+`game/store.ts` combines small groups of actions from `game/store/`. Components select the state they need and call those actions. Keep inventory changes and game rules in the store rather than inside page components.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Gathering selects one active node. Each tick uses elapsed wall-clock time to calculate completed actions and retain partial progress. Fishing rolls one fish per completed action. Woodcutting and mining calculate rewards from the node's base reward, additions, and multipliers.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Reaching a requirement permanently unlocks a node; selling or crafting with its prerequisite resources does not lock it again. Resource discovery is separate from node unlocking.
 
-## Deploy on Vercel
+Effects add to a stat first, then multiply it. Production stat names are defined in `game/effects.ts`, along with the resources that receive initial production stats. The legacy `speed` modifier type remains accepted but does not affect calculations; speed upgrades use `mul` on a speed stat.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`GatheringPage` shares the woodcutting and mining page layout. Gathering cards share formatting, requirement text, and unlock progress helpers. The store page filters the upgrade list directly by the selected category and material.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Validate changes
+
+```sh
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+On Windows PowerShell with script execution disabled, use `npm.cmd` and `npx.cmd`.
+
+The tests execute the actual TypeScript game modules with Zustand's state engine. They cover gathering, fishing, selling, crafting, upgrades, effects, and permanent unlocks.
